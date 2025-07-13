@@ -1,0 +1,9 @@
+# PyInstaller output
+dist/
+build/
+
+# Local data directories
+data/
+__pycache__/
+*.pyc
+.venv/

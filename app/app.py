@@ -1,0 +1,482 @@
+import os
+import sqlite3
+from flask import Flask, render_template, request, redirect, url_for, g, jsonify
+import datetime # Import datetime for timestamps
+import subprocess # NEW IMPORT
+import shutil
+import sys
+import argparse
+
+app = Flask(__name__)
+# --- MODIFIED PATH CONFIGURATION ---
+# Use an argument or environment variable for the base data path
+# In packaged app, this will be Electron's userData path
+# In development, it will default to 'data' relative to app.py
+def get_base_data_path():
+    # Check for an argument passed from Electron
+    parser = argparse.ArgumentParser(description='Flask App for Browser Manager.')
+    parser.add_argument('--user-data-path', type=str, help='Path to Electron\'s user data directory.')
+    args, _ = parser.parse_known_args() # Use parse_known_args to ignore Flask's args
+
+    if args.user_data_path:
+        print(f"Using user data path from Electron: {args.user_data_path}")
+        return os.path.join(args.user_data_path, 'BrowserManagerData') # Create a sub-folder for your app's data
+    else:
+        # Fallback for development/direct run
+        return os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data')
+
+BASE_DATA_PATH = get_base_data_path()
+
+app.config['DATABASE'] = os.path.join(BASE_DATA_PATH, 'profiles.db')
+app.config['BROWSER_BINARIES_DIR'] = os.path.join(BASE_DATA_PATH, 'browser_binaries')
+app.config['PROFILES_DIR'] = os.path.join(BASE_DATA_PATH, 'profiles')
+
+# Ensure the data directories exist
+os.makedirs(BASE_DATA_PATH, exist_ok=True)
+os.makedirs(app.config['BROWSER_BINARIES_DIR'], exist_ok=True)
+os.makedirs(app.config['PROFILES_DIR'], exist_ok=True)
+
+#
+
+def get_db():
+    """Connects to the specific database."""
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(app.config['DATABASE'])
+        db.row_factory = sqlite3.Row  # This makes rows behave like dicts
+    return db
+
+@app.teardown_appcontext
+def close_connection(exception):
+    """Closes the database again at the end of the request."""
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+def init_db():
+    """Initializes the database schema."""
+    with app.app_context():
+        db = get_db()
+        cursor = db.cursor()
+        # Create projects table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS projects (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                notes TEXT,
+                last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        # Create profiles table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS profiles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                browser TEXT NOT NULL,
+                folder TEXT, -- This will store the relative path to the profile folder
+                notes TEXT,
+                proxy TEXT,
+                save_cookies BOOLEAN DEFAULT 1,
+                clear_session_on_exit BOOLEAN DEFAULT 0,
+                last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                project_id INTEGER,
+                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
+            )
+        ''')
+        db.commit()
+        print("Database initialized.")
+
+# Call init_db when the application starts
+with app.app_context():
+    init_db()
+
+# --- Routes for serving HTML pages ---
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/new-project.html')
+def new_project_page():
+    return render_template('new-project.html')
+
+@app.route('/new-profile.html')
+def new_profile_page():
+    return render_template('new-profile.html')
+
+@app.route('/projects.html')
+def projects_page():
+    db = get_db()
+    # Join with profiles table to count profiles per project for display
+    # This is an example, actual display on projects.html might be different
+    projects = db.execute('''
+        SELECT p.id, p.name, p.notes, p.last_used, COUNT(prof.id) AS profile_count
+        FROM projects p
+        LEFT JOIN profiles prof ON p.id = prof.project_id
+        GROUP BY p.id
+        ORDER BY p.last_used DESC
+    ''').fetchall()
+    return render_template('projects.html', projects=projects)
+
+@app.route('/profiles.html')
+def profiles_page():
+    db = get_db()
+    # Join with projects table to show project name instead of just ID
+    profiles = db.execute('''
+        SELECT prof.*, proj.name AS project_name
+        FROM profiles prof
+        LEFT JOIN projects proj ON prof.project_id = proj.id
+        ORDER BY prof.last_used DESC
+    ''').fetchall()
+    return render_template('profiles.html', profiles=profiles)
+
+# --- API Endpoints ---
+
+@app.route('/api/create_project', methods=['POST'])
+def create_project():
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    name = data.get('name')
+    notes = data.get('notes')
+
+    if not name:
+        return jsonify({"error": "Project name is required"}), 400
+
+    db = get_db()
+    try:
+        cursor = db.cursor()
+        cursor.execute('INSERT INTO projects (name, notes) VALUES (?, ?)', (name, notes))
+        db.commit()
+        return jsonify({"message": "Project created successfully!"}), 201
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "Project with this name already exists."}), 409
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": str(e)}), 500
+    pass
+
+@app.route('/api/projects', methods=['GET'])
+def get_projects():
+    """API endpoint to get a list of all projects with profile counts."""
+    db = get_db()
+    # Modified query to include profile_count and use GROUP BY
+    projects = db.execute('''
+        SELECT p.id, p.name, p.notes, p.last_used, COUNT(prof.id) AS profile_count
+        FROM projects p
+        LEFT JOIN profiles prof ON p.id = prof.project_id
+        GROUP BY p.id
+        ORDER BY p.name ASC
+    ''').fetchall()
+    projects_list = []
+    for row in projects:
+        project_dict = dict(row)
+        if project_dict['last_used']:
+            dt_object = datetime.datetime.strptime(project_dict['last_used'], '%Y-%m-%d %H:%M:%S')
+            project_dict['last_used_formatted'] = dt_object.strftime('%B %d, %Y %I:%M %p')
+        else:
+            project_dict['last_used_formatted'] = 'Never'
+        projects_list.append(project_dict)
+    return jsonify(projects_list), 200
+
+@app.route('/api/create_profile', methods=['POST'])
+def create_profile():
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    name = data.get('name')
+    browser_type_raw = data.get('browser') # e.g., 'Chrome', 'Firefox', 'Brave'
+    notes = data.get('notes')
+    proxy = data.get('proxy')
+    save_cookies = data.get('save_cookies') 
+    clear_session_on_exit = data.get('clear_session_on_exit') 
+    project_id = data.get('project_id') 
+
+    # Basic server-side validation
+    if not name or not browser_type_raw:
+        return jsonify({"error": "Profile Name and Browser are required!"}), 400
+
+    if project_id is not None:
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            return jsonify({"error": "Invalid project ID."}), 400
+    
+    # --- MODIFIED PATH CREATION LOGIC ---
+    # Map browser type to its specific portable folder name
+    browser_folder_map = {
+        'chrome': 'GoogleChromePortable',
+        'firefox': 'FirefoxPortable',
+        'brave': 'BravePortable'
+    }
+    browser_dir_name = browser_folder_map.get(browser_type_raw)
+
+    if not browser_dir_name:
+        return jsonify({"error": f"Unsupported browser type: {browser_type_raw}"}), 400
+
+    # Sanitize profile name for use in a file path
+    safe_profile_name = "".join(c for c in name if c.isalnum() or c in (' ', '.', '_')).replace(' ', '_')
+    
+    # Construct the full unique absolute path for this profile's data directory
+    # This path is relative to your project's 'data/profiles' directory
+    profile_folder_path = os.path.join(app.config['PROFILES_DIR'], browser_dir_name, safe_profile_name)
+
+    app.logger.info(f"DEBUG: profile_folder_path BEFORE DB INSERT: {profile_folder_path}") # Your debug line (keep for testing)
+
+    db = get_db()
+    try:
+        # Create the profile directory (and parent directories if they don't exist)
+        # This is where the browser will store its profile data
+        os.makedirs(profile_folder_path, exist_ok=True)
+        app.logger.info(f"Created profile directory: {profile_folder_path}")
+
+        cursor = db.cursor()
+        
+        # Insert new profile into the database with the FULL ABSOLUTE PATH
+        cursor.execute('''
+            INSERT INTO profiles (name, browser, folder, notes, proxy, save_cookies, clear_session_on_exit, last_used, project_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (name, browser_type_raw, profile_folder_path, notes, proxy, save_cookies, clear_session_on_exit, datetime.datetime.now(), project_id))
+        
+        db.commit()
+        return jsonify({"message": "Profile created successfully!"}), 201
+    except sqlite3.IntegrityError:
+        # Attempt to delete the created directory if DB insertion fails due to integrity error
+        if os.path.exists(profile_folder_path) and os.path.isdir(profile_folder_path):
+            try:
+                os.rmdir(profile_folder_path) # Only removes empty directory
+                app.logger.warning(f"Cleaned up empty profile directory after IntegrityError: {profile_folder_path}")
+            except OSError as e:
+                app.logger.error(f"Could not remove profile directory {profile_folder_path} after IntegrityError: {e}")
+        return jsonify({"error": "Profile with this name already exists."}), 409
+    except Exception as e:
+        db.rollback()
+        app.logger.error(f"Error creating profile: {e}", exc_info=True) # Log full traceback
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/profiles', methods=['GET'])
+def get_profiles():
+    """API endpoint to get a list of all profiles."""
+    db = get_db()
+    profiles = db.execute('''
+        SELECT prof.*, proj.name AS project_name
+        FROM profiles prof
+        LEFT JOIN projects proj ON prof.project_id = proj.id
+        ORDER BY prof.last_used DESC
+    ''').fetchall()
+    profiles_list = []
+    for row in profiles:
+        profile_dict = dict(row)
+        if profile_dict['last_used']:
+            try:
+                # Try parsing with microseconds first (for newer entries)
+                dt_object = datetime.datetime.strptime(profile_dict['last_used'], '%Y-%m-%d %H:%M:%S.%f')
+            except ValueError:
+                # If that fails, try parsing without microseconds (for older entries)
+                dt_object = datetime.datetime.strptime(profile_dict['last_used'], '%Y-%m-%d %H:%M:%S')
+            profile_dict['last_used_formatted'] = dt_object.strftime('%B %d, %Y %I:%M %p')
+        else:
+            profile_dict['last_used_formatted'] = 'Never'
+        profile_dict['save_cookies_display'] = 'Yes' if profile_dict['save_cookies'] else 'No'
+        profile_dict['clear_session_on_exit_display'] = 'Yes' if profile_dict['clear_session_on_exit'] else 'No'
+
+        profiles_list.append(profile_dict)
+
+    return jsonify(profiles_list), 200
+
+@app.route('/api/profiles/by_project/<int:project_id>', methods=['GET'])
+def get_profiles_by_project(project_id):
+    """API endpoint to get profiles associated with a specific project."""
+    db = get_db()
+    profiles = db.execute('''
+        SELECT prof.*, proj.name AS project_name
+        FROM profiles prof
+        LEFT JOIN projects proj ON prof.project_id = proj.id
+        WHERE prof.project_id = ?
+        ORDER BY prof.name ASC
+    ''', (project_id,)).fetchall()
+
+    profiles_list = []
+    for row in profiles:
+        profile_dict = dict(row)
+        if profile_dict['last_used']:
+            try:
+                # Try parsing with microseconds first (for newer entries)
+                dt_object = datetime.datetime.strptime(profile_dict['last_used'], '%Y-%m-%d %H:%M:%S.%f')
+            except ValueError:
+                # If that fails, try parsing without microseconds (for older entries)
+                dt_object = datetime.datetime.strptime(profile_dict['last_used'], '%Y-%m-%d %H:%M:%S')
+            profile_dict['last_used_formatted'] = dt_object.strftime('%B %d, %Y %I:%M %p')
+        else:
+            profile_dict['last_used_formatted'] = 'Never'
+        profile_dict['save_cookies_display'] = 'Yes' if profile_dict['save_cookies'] else 'No'
+        profile_dict['clear_session_on_exit_display'] = 'Yes' if profile_dict['clear_session_on_exit'] else 'No'
+
+        profiles_list.append(profile_dict)
+    return jsonify(profiles_list), 200
+
+
+@app.route('/api/launch_profile/<int:profile_id>', methods=['POST'])
+def launch_profile(profile_id):
+    db = get_db()
+    cursor = db.cursor()
+
+    try:
+        # 1. Retrieve profile details from the database
+        profile = cursor.execute('SELECT * FROM profiles WHERE id = ?', (profile_id,)).fetchone()
+
+        if not profile:
+            app.logger.warning(f"Attempted to launch non-existent profile with ID: {profile_id}")
+            return jsonify({"status": "error", "message": "Profile not found."}), 404
+
+        browser_type = profile['browser'] # e.g., 'Chrome', 'Firefox', 'Brave'
+        profile_folder_path = profile['folder'] # The unique path we created earlier
+
+        # 2. Determine browser executable path and arguments
+        # IMPORTANT: Verify these paths match where you place your portable browsers.
+        # Ensure the .exe names are correct for your portable versions.
+        browser_exe_map = {
+            'chrome': os.path.join(app.config['BROWSER_BINARIES_DIR'], 'GoogleChromePortable', 'App', 'Chrome-bin', 'chrome.exe'),
+            'firefox': os.path.join(app.config['BROWSER_BINARIES_DIR'], 'FirefoxPortable', 'App', 'Firefox64', 'firefox.exe'),
+            'brave': os.path.join(app.config['BROWSER_BINARIES_DIR'], 'BravePortable', 'BravePortable.exe') # Adjust if Brave's portable executable is different
+        }
+
+        browser_executable = browser_exe_map.get(browser_type)
+
+        if not browser_executable or not os.path.exists(browser_executable):
+            app.logger.error(f"Browser executable not found for {browser_type}: {browser_executable}")
+            return jsonify({"status": "error", "message": f"Browser executable for {browser_type} not found. Please ensure it's placed correctly."}), 404
+
+        # Construct command-line arguments for launching the browser with the specific profile
+        command = [browser_executable]
+        if browser_type == 'chrome' or browser_type == 'brave':
+            command.append(f'--user-data-dir={profile_folder_path}')
+            # Optional: Add --no-first-run --no-default-browser-check for cleaner startup
+            command.extend(['--no-first-run', '--no-default-browser-check'])
+        elif browser_type == 'firefox':
+            command.append('-profile')
+            command.append(profile_folder_path)
+            # Optional: Add -no-remote to ensure a new instance is always launched
+            command.append('-no-remote')
+        else:
+            app.logger.error(f"Unsupported browser type for launch: {browser_type}")
+            return jsonify({"status": "error", "message": f"Unsupported browser type for launch: {browser_type}"}), 400
+
+        app.logger.info(f"Launching command: {' '.join(command)}")
+
+        
+
+        # 3. Launch the browser
+        # Using Popen to launch it without waiting for it to close
+        subprocess.Popen(command, close_fds=True) # close_fds=True is good practice on non-Windows, but doesn't hurt on Windows
+
+        # 4. Update last_used timestamp in the database
+        current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        cursor.execute('UPDATE profiles SET last_used = ? WHERE id = ?', (current_time, profile_id))
+        db.commit()
+        app.logger.info(f"Profile '{profile['name']}' (ID: {profile_id}) launched successfully and last_used updated.")
+
+        return jsonify({"status": "success", "message": f"{browser_type} launched for profile {profile['name']}."}), 200
+
+    except Exception as e:
+        app.logger.error(f"Error launching profile {profile_id}: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": f"Failed to launch browser: {str(e)}"}), 500
+    
+
+@app.route('/api/profiles/<int:profile_id>', methods=['DELETE'])
+def delete_profile(profile_id):
+    db = get_db()
+    cursor = db.cursor()
+
+    try:
+        # 1. Get the profile's folder path before deleting from DB
+        profile = cursor.execute('SELECT folder FROM profiles WHERE id = ?', (profile_id,)).fetchone()
+
+        if not profile:
+            app.logger.warning(f"Attempted to delete non-existent profile with ID: {profile_id}")
+            return jsonify({"status": "error", "message": "Profile not found."}), 404
+
+        profile_folder_path = profile['folder']
+
+        # 2. Delete the profile from the database
+        cursor.execute('DELETE FROM profiles WHERE id = ?', (profile_id,))
+        db.commit()
+        app.logger.info(f"Profile ID {profile_id} deleted from database.")
+
+        # 3. Delete the associated profile folder from the file system
+        if os.path.exists(profile_folder_path) and os.path.isdir(profile_folder_path):
+            try:
+                shutil.rmtree(profile_folder_path) # Use rmtree to remove non-empty directories
+                app.logger.info(f"Profile folder deleted: {profile_folder_path}")
+            except OSError as e:
+                app.logger.error(f"Error deleting profile folder {profile_folder_path}: {e}", exc_info=True)
+                # Even if folder deletion fails, we report DB deletion success
+                return jsonify({"status": "success", "message": "Profile deleted from database, but folder cleanup failed. Check logs."}), 200
+        else:
+            app.logger.warning(f"Profile folder not found for ID {profile_id}: {profile_folder_path}. Skipping file system cleanup.")
+
+        return jsonify({"status": "success", "message": "Profile deleted successfully."}), 200
+
+    except Exception as e:
+        db.rollback()
+        app.logger.error(f"Error deleting profile {profile_id}: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": f"Failed to delete profile: {str(e)}"}), 500
+
+@app.route('/api/projects/<int:project_id>', methods=['DELETE'])
+def delete_project(project_id):
+    db = get_db()
+    cursor = db.cursor()
+
+    try:
+        # 1. Get all profiles associated with this project to delete their folders
+        associated_profiles = cursor.execute('SELECT id, folder FROM profiles WHERE project_id = ?', (project_id,)).fetchall()
+
+        # 2. Delete associated profile folders from the file system
+        for profile in associated_profiles:
+            profile_folder_path = profile['folder']
+            if os.path.exists(profile_folder_path) and os.path.isdir(profile_folder_path):
+                try:
+                    shutil.rmtree(profile_folder_path)
+                    app.logger.info(f"Deleted associated profile folder: {profile_folder_path} for project {project_id}")
+                except OSError as e:
+                    app.logger.error(f"Error deleting associated profile folder {profile_folder_path} for project {project_id}: {e}", exc_info=True)
+                    # Continue with DB deletion even if folder deletion fails for one profile
+            else:
+                app.logger.warning(f"Associated profile folder not found: {profile_folder_path} for project {project_id}. Skipping file system cleanup.")
+
+        # 3. Delete profiles associated with this project from the database
+        # ON DELETE SET NULL on the FK means profiles will have project_id set to NULL if project is deleted.
+        # If you want to CASCADE DELETE, you'd change the FK definition in init_db().
+        # For now, let's explicitly delete them to ensure clean removal.
+        cursor.execute('DELETE FROM profiles WHERE project_id = ?', (project_id,))
+        app.logger.info(f"Deleted profiles associated with project ID {project_id} from database.")
+
+
+        # 4. Delete the project itself from the database
+        cursor.execute('DELETE FROM projects WHERE id = ?', (project_id,))
+        db.commit()
+        app.logger.info(f"Project ID {project_id} deleted from database.")
+
+        return jsonify({"status": "success", "message": "Project and associated profiles deleted successfully."}), 200
+
+    except Exception as e:
+        db.rollback()
+        app.logger.error(f"Error deleting project {project_id}: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": f"Failed to delete project: {str(e)}"}), 500
+
+
+
+# --- MODIFIED Flask RUN block at the end of app.py ---
+if __name__ == '__main__':
+    # Get port from environment variable set by Electron, default to 5000
+    port = int(os.environ.get('FLASK_APP_PORT', 5000)) # Use FLASK_PORT from main.js
+    
+    # Disable Flask's reloader in production (packaged) environments
+    # It causes issues with PyInstaller and child processes
+    debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1' # Set FLASK_DEBUG='1' for dev
+    use_reloader = debug_mode and not getattr(sys, 'frozen', False) # Disable reloader if packaged
+
+    print(f"Flask app starting on port {port}, debug={debug_mode}, reloader={use_reloader}")
+    
+    app.run(host='127.0.0.1', port=port, debug=debug_mode, use_reloader=use_reloader)

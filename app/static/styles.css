@@ -1,0 +1,302 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f3f6fb;
+  color: #333;
+}
+
+/* --------------NEW NAV BAR ------------------------- */
+
+.nav-bar ul {
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 40px;
+    min-height: 50px;
+    list-style: none;
+    border-radius: 10px;
+
+    /* padding-inline: 30px; */
+}
+
+.brand-name {
+    color: #3b5998;
+    margin-right: 40px ;
+}
+
+.nav-bar-pages {
+    display: flex;
+    align-items: center;
+}
+
+.nav-link {
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    padding-inline: 20px;
+    border-radius: 5px;
+    transition: 0.3s;
+    text-decoration: none;
+
+    /* space between icon and text */
+}
+
+
+
+.nav-link:hover {
+    color:#3b5998;
+    background-color: #D2DFF0;
+}
+
+.nav-link:active {
+    color: white;
+    background-color: #3b5998;
+}
+
+.nav-bar-actions {
+    display: flex;
+    align-items: center;
+}
+
+
+.search-bar {
+    background-color: #F7F7F7 ;
+    width: 350px;
+    padding: 10px;
+    padding-inline: 20px;
+
+    margin-right: 80px;
+    border-radius: 5px;
+    border: none;
+    outline: none;
+}
+.nav-bar-action-icons {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    padding-inline: 20px;
+    border-radius: 5px;
+    transition: 0.3s;
+
+
+}
+
+.nav-bar-action-icons:hover {
+    background-color: #D2DFF0;
+    
+}
+
+
+.folder-icon,
+.person-icon,
+.new-icon {
+    width: 24px;
+}
+
+.folder-icon:hover {
+    fill: #e9efff;
+}
+
+.settings-icon {
+    width: 20px;
+}
+
+
+
+
+
+
+
+
+
+
+/* --------------------------------------------------------- */
+
+
+/* ------------------OLD NAV BAR ------------------------- */
+
+
+.icon {
+  width: 20px;
+  height: 20px;
+}
+
+.content {
+  background: white;
+  margin: 40px;
+  padding: 30px;
+  border-radius: 16px;
+  display: flex;
+  justify-content: center;
+  /* gap: 50px; */
+}
+
+.card {
+  text-align: center;
+  cursor: pointer;
+}
+
+.card-icon {
+  font-size: 60px;
+  margin-bottom: 10px;
+}
+
+.card-label {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  text-align: left;
+  padding: 14px;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  background-color: #f2f4f7;
+}
+
+select {
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.btn-edit, .btn-delete {
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: white;
+}
+
+.btn-edit {
+  background-color: #81c995;
+}
+
+.btn-delete {
+  background-color: #f28b82;
+  margin-left: 8px;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 500px; /* Default for new-project.html */
+}
+
+/* Specific styles for new-profile.html form layout */
+.form-section.profile-form { /* Added a class to differentiate */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  max-width: 900px;
+}
+
+.form-left, .form-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-title {
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+  /* For new-profile.html, this spans two columns */
+  grid-column: span 2;
+}
+
+.form-label {
+  font-weight: 500;
+}
+
+.form-input {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  background-color: #f2f4f7;
+}
+
+.browser-options {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toggle input[type="checkbox"] {
+  appearance: none;
+  width: 36px;
+  height: 18px;
+  background-color: #ccc;
+  border-radius: 9px;
+  position: relative;
+  outline: none;
+  cursor: pointer;
+}
+
+.toggle input[type="checkbox"]:checked {
+  background-color: #4caf50;
+}
+
+.toggle input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.toggle input[type="checkbox"]:checked::before {
+  transform: translateX(18px);
+}
+
+.form-buttons {
+  display: flex;
+  gap: 15px;
+  /* For new-profile.html, this spans two columns */
+  grid-column: span 2;
+}
+
+.btn-cancel {
+  background-color: #f28b82;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+}
+
+.btn-create {
+  background-color: #81c995;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+}
+
+
