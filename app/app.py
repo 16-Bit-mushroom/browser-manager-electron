@@ -1,43 +1,68 @@
 import os
 import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, g, jsonify
-import datetime # Import datetime for timestamps
-import subprocess # NEW IMPORT
+import datetime
+import subprocess
 import shutil
 import sys
 import argparse
 
+# --- Add Argument Parsing ---
+parser = argparse.ArgumentParser(description='Flask Backend for Browser Manager.')
+parser.add_argument('--user-data-path', type=str, help='Path to store user data (profiles, database).')
+args = parser.parse_args()
+# --- End Argument Parsing ---
+
 app = Flask(__name__)
-# --- MODIFIED PATH CONFIGURATION ---
-# Use an argument or environment variable for the base data path
-# In packaged app, this will be Electron's userData path
-# In development, it will default to 'data' relative to app.py
-def get_base_data_path():
-    # Check for an argument passed from Electron
-    parser = argparse.ArgumentParser(description='Flask App for Browser Manager.')
-    parser.add_argument('--user-data-path', type=str, help='Path to Electron\'s user data directory.')
-    args, _ = parser.parse_known_args() # Use parse_known_args to ignore Flask's args
 
-    if args.user_data_path:
-        print(f"Using user data path from Electron: {args.user_data_path}")
-        return os.path.join(args.user_data_path, 'BrowserManagerData') # Create a sub-folder for your app's data
+# --- MODIFIED PATH CONFIGURATION for different data types ---
+def get_application_paths():
+    """
+    Determines base paths for:
+    1. Mutable user data (database, generated profiles) - goes into Electron's userData path.
+    2. Read-only application resources (like pre-bundled browser binaries) - copied by Electron Builder.
+    """
+    mutable_user_data_base_path = None
+    read_only_resources_base_path = None
+    
+
+    if getattr(sys, 'frozen', False):
+        # The application is frozen (running as an executable)
+        # Mutable User Data Path: Passed from Electron's userData directory
+        if args.user_data_path:
+            mutable_user_data_base_path = os.path.join(args.user_data_path, 'BrowserManagerData')
+        else:
+            # Fallback if --user-data-path not provided (should not happen with Electron)
+            mutable_user_data_base_path = os.path.join(os.path.dirname(sys.executable), 'data_fallback') # Just a fallback
+
+        # Read-only Resources Path: Copied by Electron-Builder to [app_root]/data/
+        # Flask executable is at [app_root]/resources/app-backend/browser_manager_flask_app.exe
+        # So, relative path from Flask exe to 'data' folder: ../../data/
+        flask_exe_dir = os.path.dirname(sys.executable)
+        app_root_dir = os.path.join(flask_exe_dir, '..', '..') # Go up from resources/app-backend to app_root
+        read_only_resources_base_path = os.path.join(app_root_dir, 'data') # Points to [app_root]/data
     else:
-        # Fallback for development/direct run
-        return os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data')
+        # The application is not frozen (running as a regular Python script - development mode)
+        current_script_dir = os.path.abspath(os.path.dirname(__file__))
+        mutable_user_data_base_path = os.path.join(current_script_dir, 'data', 'user_data_dev') # Separate data for dev
+        read_only_resources_base_path = os.path.join(current_script_dir, 'data') # Browser binaries from dev 'data' folder
 
-BASE_DATA_PATH = get_base_data_path()
+    return mutable_user_data_base_path, read_only_resources_base_path
 
-app.config['DATABASE'] = os.path.join(BASE_DATA_PATH, 'profiles.db')
-app.config['BROWSER_BINARIES_DIR'] = os.path.join(BASE_DATA_PATH, 'browser_binaries')
-app.config['PROFILES_DIR'] = os.path.join(BASE_DATA_PATH, 'profiles')
+# Get the determined paths
+MUTABLE_USER_DATA_PATH, READ_ONLY_RESOURCES_PATH = get_application_paths()
 
-# Ensure the data directories exist
-os.makedirs(BASE_DATA_PATH, exist_ok=True)
-os.makedirs(app.config['BROWSER_BINARIES_DIR'], exist_ok=True)
+# Configure Flask app with these paths
+app.config['DATABASE'] = os.path.join(MUTABLE_USER_DATA_PATH, 'profiles.db')
+app.config['BROWSER_BINARIES_DIR'] = os.path.join(READ_ONLY_RESOURCES_PATH, 'browser_binaries') # This is the key change!
+app.config['PROFILES_DIR'] = os.path.join(MUTABLE_USER_DATA_PATH, 'profiles')
+
+# Ensure only the MUTABLE directories exist.
+# Electron Builder handles copying the read-only 'browser_binaries' directory.
+os.makedirs(MUTABLE_USER_DATA_PATH, exist_ok=True)
 os.makedirs(app.config['PROFILES_DIR'], exist_ok=True)
 
 #
-
 def get_db():
     """Connects to the specific database."""
     db = getattr(g, '_database', None)
@@ -470,12 +495,11 @@ def delete_project(project_id):
 # --- MODIFIED Flask RUN block at the end of app.py ---
 if __name__ == '__main__':
     # Get port from environment variable set by Electron, default to 5000
-    port = int(os.environ.get('FLASK_APP_PORT', 5000)) # Use FLASK_PORT from main.js
+    port = int(os.environ.get('FLASK_APP_PORT', 5000))
     
     # Disable Flask's reloader in production (packaged) environments
-    # It causes issues with PyInstaller and child processes
-    debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1' # Set FLASK_DEBUG='1' for dev
-    use_reloader = debug_mode and not getattr(sys, 'frozen', False) # Disable reloader if packaged
+    debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1'
+    use_reloader = debug_mode and not getattr(sys, 'frozen', False)
 
     print(f"Flask app starting on port {port}, debug={debug_mode}, reloader={use_reloader}")
     

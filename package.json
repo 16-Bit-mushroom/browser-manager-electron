@@ -1,15 +1,79 @@
 {
   "name": "browser-manager-electron",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "An Electron app to manage browser profiles.",
+  "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "electron .",
+    "build": "electron-builder"
   },
   "keywords": [],
-  "author": "",
+  "author": "Chris Cyrel Estil",
   "license": "ISC",
-  "description": "",
   "devDependencies": {
-    "electron": "^37.2.1"
+    "electron": "^29.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.yourcompany.browsermanager",
+    "productName": "Browser Manager",
+    "copyright": "Copyright © 2025 ${author}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "index.html",
+      "package.json",
+      "node_modules"
+    ],
+    "extraFiles": [
+      {
+        "from": "app/data/browser_binaries",
+        "to": "data/browser_binaries",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "app/data/profiles",
+        "to": "data/profiles",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "app/data/profiles.db",
+        "to": "data/profiles.db",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "app/dist/browser_manager_flask_app/browser_manager_flask_app.exe",
+        "to": "resources/app-backend/browser_manager_flask_app.exe"
+      }
+    ],
+    "mac": {
+      "icon": "build/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    }
   }
 }
