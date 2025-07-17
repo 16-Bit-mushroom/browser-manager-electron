@@ -2,207 +2,233 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/static/styles.css" />
-  <title>Profiles - Browser Manager</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <title>Browser Manager | Profiles</title>
 </head>
 
 <body>
-  <div class="nav-bar">
-    <ul>
-      <div class="nav-bar-pages">
-        <li>
-          <h2 class="brand-name">Browser Manager</h2>
-        </li>
+    <div class="main-container">
 
-        <li>
-          <a class="nav-link" href="/projects.html"><img class="folder-icon" src="/static/folder-default.svg"
-              alt="folder-icon" />Projects</a>
-        </li>
-        <li>
-          <a class="nav-link" href="/profiles.html"><img class="person-icon" src="/static/person-default.svg"
-              alt="" />Profiles</a>
-        </li>
-      </div>
+        <div class="nav-bar">
+            <div>
+                <h2 class="app-name">Browser Manager</h2>
 
-      <div class="nav-bar-actions">
-        <li>
-          <input class="search-bar" type="text" placeholder="Search..." />
-        </li>
+                <ul class="nav-bar-links">
+                    <li><a href="/projects.html">📁 Projects</a></li>
+                    <li><a href="/profiles.html">👤 Profiles</a></li>
+                    <li><a href="">🌐 Browser</a></li>
+                    <li><a href="">🕥 History</a></li>
+                    <li><a href="">🗑️ Recycle Bin</a></li>
+                </ul>
+            </div>
 
-        <li>
-          <a class="nav-bar-action-icons" href="/new-project.html"><img class="new-icon"
-              src="/static/new-folder-primary.svg" alt="" title="New Project" /></a>
-        </li>
-        <li>
-          <a class="nav-bar-action-icons" href="/new-profile.html"><img class="new-icon"
-              src="/static/new-person-primary.svg" alt="" title="New Profile" /></a>
-        </li>
-        <li>
-          <a class="nav-bar-action-icons" href=""><img class="settings-icon" src="/static/settings-default.svg" alt=""
-              title="Settings" /></a>
-        </li>
-      </div>
-    </ul>
-  </div>
+            <div>
+                <ul class="nav-bar-links">
+                    <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button>
+                    <li><a href="">⚙️ Settings</a></li>
+                    <li><a href="/">🔑 Sign Out</a></li>
+                </ul>
+            </div>
 
-  <div class="content">
-    <div id="message" style="margin-bottom: 10px; text-align: center"></div>
-    {# ADD THIS LINE #}
 
-    <table id="profiles-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Browser</th>
-          <th>Project</th>
-          <th>Proxy</th>
-          <th>Save Cookies</th>
-          <th>Clear on Exit</th>
-          <th>Last Used</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="profiles-tbody"></tbody>
-    </table>
-    <div id="message" style="margin-top: 20px; text-align: center; font-weight: bold"></div>
-  </div>
 
-  <script>
-    async function loadProfiles() {
-      const tbody = document.getElementById("profiles-tbody"); // Make sure your tbody has id="profiles-tbody"
-      const messageDiv = document.getElementById("message"); // Make sure you have a div with id="message" for feedback
+        </div>
 
-      try {
-        const response = await fetch("/api/profiles"); // Fetch profiles data
-        const profiles = await response.json();
+        <div class="content-area">
 
-        if (tbody) {
-          // Ensure tbody exists before trying to manipulate it
-          tbody.innerHTML = ""; // Clear existing rows
-        }
+            <h1 class="content-header">Profiles</h1>
 
-        if (profiles.length === 0) {
-          if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center;">No profiles found. Create a new one!</td></tr>`;
-          }
-          return;
-        }
+            <div class="content-top-bar-actions">
+                <div class="right">
+                    <button type="button" class="button">
+                        <img class="button-icon" src="/static/add.svg" alt=""></span> <span class="button-text"><a
+                                href="/new-profile.html">Add Profile</a></span>
+                    </button>
 
-        profiles.forEach((profile) => {
-          const row = tbody.insertRow();
+                    <button type="button" class="button">
+                        <img class="button-icon" src="static/export-file.svg" alt="upload-file"
+                            title="Export Profile">
+                    </button>
 
-          // Assuming these columns exist in your fetched profile data and your table structure
-          row.insertCell().textContent = profile.name;
-          row.insertCell().textContent = profile.browser;
-          row.insertCell().textContent = profile.project_name || "N/A"; // Assuming a 'project_name' from JOIN or 'Project' column in DB
-          row.insertCell().textContent = profile.proxy || "None";
-          row.insertCell().textContent = profile.save_cookies_display; // Assuming you format this in the Flask API like get_all_profiles
-          row.insertCell().textContent =
-            profile.clear_session_on_exit_display; // Same as above
-          row.insertCell().textContent =
-            profile.last_used_formatted || "Never"; // Use formatted time from API or 'Never'
+                    <button type="button" class="button">
+                        <img class="button-icon" src="static/import-profile.svg" alt="upload-file"
+                            title="Import Profile">
+                    </button>
 
-          const actionsCell = row.insertCell();
+                </div>
+                <input id="search-bar" type="text" placeholder="Search...">
 
-          // --- MODIFIED LAUNCH BUTTON LOGIC ---
-          const launchButton = document.createElement("button");
-          launchButton.className = "btn-create";
-          launchButton.textContent = "Launch";
-          // Assign the profile ID to a data attribute for easy access
-          launchButton.dataset.profileId = profile.id;
+                <div class="left">
+                    <button type="button" class="button">
+                        <img class="button-icon" src="static/expand_all.svg" alt="upload-file" title="Expand All">
+                    </button>
 
-          launchButton.addEventListener("click", async (event) => {
-            const profileId = event.target.dataset.profileId;
-            if (!profileId) {
-              console.error("Profile ID not found for launch button.");
-              alert("Error: Could not determine profile to launch.");
-              return;
-            }
+                    <button type="button" class="button">
+                        <img class="button-icon" src="static/sort.svg" alt="upload-file" title="Sort Table">
+                    </button>
+
+                </div>
+
+
+            </div>
+
+
+            <div>
+                <table class="content-table">
+                    <thead>
+                        <tr>
+                            <th id="far-left-th"><input type="checkbox" name="select" id="" title="Select All"></th>
+                            <th>Profile Name</th>
+                            <th>Browser</th>
+                            <th>Last Used</th>
+                            <th id="far-right-th">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="projects-table-body">
+                    </tbody>
+                </table>
+                <div id="message" style="margin-top: 20px; text-align: center; font-weight: bold"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        async function loadProfiles() {
+            // Changed ID to match your profiles.html
+            const tbody = document.getElementById("projects-table-body");
+            const messageDiv = document.getElementById("message");
 
             try {
-              const response = await fetch(
-                `/api/launch_profile/${profileId}`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
+                const response = await fetch("/api/profiles");
+                const profiles = await response.json();
+
+                if (tbody) {
+                    tbody.innerHTML = ""; // Clear existing rows
                 }
-              );
 
-              const result = await response.json();
+                if (profiles.length === 0) {
+                    if (tbody) {
+                        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">No profiles found. Create a new one!</td></tr>`;
+                    }
+                    return;
+                }
 
-              if (response.ok) {
-                alert(result.message);
-                // Optionally, refresh the page to update 'Last Used' timestamp
-                // Using setTimeout for a brief delay to allow browser launch to initiate
-                setTimeout(() => {
-                  window.location.reload();
-                }, 500);
-              } else {
-                alert(`Failed to launch profile: ${result.message}`);
-              }
-            } catch (error) {
-              console.error("Error launching profile:", error);
-              alert(`Network or system error: ${error.message}`);
-            }
-          });
-          actionsCell.appendChild(launchButton);
-          // --- END MODIFIED LAUNCH BUTTON LOGIC ---
+                profiles.forEach((profile) => {
+                    const row = tbody.insertRow();
 
-          const deleteButton = document.createElement("button");
-          deleteButton.className = "btn-delete";
-          deleteButton.textContent = "Delete";
-          deleteButton.style.marginLeft = "8px";
-          deleteButton.addEventListener("click", async () => {
-            // MODIFIED: Added async
-            const profileId = profile.id; // Get profile ID
-            const profileName = profile.name;
+                    // Column 1: Checkbox
+                    row.insertCell().innerHTML = '<input type="checkbox" name="select" id="">';
 
-            // Use a custom modal instead of alert/confirm for better UX if desired
-            if (
-              confirm(
-                `Are you sure you want to delete profile: ${profileName}? This will also delete its data folder.`
-              )
-            ) {
-              try {
-                const response = await fetch(`/api/profiles/${profileId}`, {
-                  method: "DELETE",
+                    // Column 2: Profile Name
+                    row.insertCell().textContent = profile.name;
+
+                    // Column 3: Browser
+                    row.insertCell().textContent = profile.browser;
+
+                    // Column 4: Last Used
+                    row.insertCell().textContent = profile.last_used_formatted || "Never";
+
+                    // Column 5: Actions (Launch and Delete buttons)
+                    const actionsCell = row.insertCell();
+
+                    const launchButton = document.createElement("button");
+                    launchButton.className = "btn-create"; // Assuming .btn-create style is available
+                    launchButton.textContent = "Launch";
+                    launchButton.dataset.profileId = profile.id;
+
+                    launchButton.addEventListener("click", async (event) => {
+                        const profileId = event.target.dataset.profileId;
+                        if (!profileId) {
+                            console.error("Profile ID not found for launch button.");
+                            alert("Error: Could not determine profile to launch.");
+                            return;
+                        }
+
+                        try {
+                            const response = await fetch(
+                                `/api/launch_profile/${profileId}`,
+                                {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                }
+                            );
+
+                            const result = await response.json();
+
+                            if (response.ok) {
+                                alert(result.message);
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 500); // Reload to update 'Last Used'
+                            } else {
+                                alert(`Failed to launch profile: ${result.message}`);
+                            }
+                        } catch (error) {
+                            console.error("Error launching profile:", error);
+                            alert(`Network or system error: ${error.message}`);
+                        }
+                    });
+                    actionsCell.appendChild(launchButton);
+
+                    const deleteButton = document.createElement("button");
+                    deleteButton.className = "btn-delete"; // Assuming .btn-delete style is available
+                    deleteButton.textContent = "Delete";
+                    deleteButton.style.marginLeft = "8px"; // Add some spacing
+                    deleteButton.addEventListener("click", async () => {
+                        const profileId = profile.id;
+                        const profileName = profile.name;
+
+                        if (
+                            confirm(
+                                `Are you sure you want to delete profile: ${profileName}? This will also delete its data folder.`
+                            )
+                        ) {
+                            try {
+                                const response = await fetch(`/api/profiles/${profileId}`, {
+                                    method: "DELETE",
+                                });
+
+                                const result = await response.json();
+
+                                if (response.ok) {
+                                    alert(result.message);
+                                    loadProfiles(); // Reload profiles to update the table
+                                } else {
+                                    alert(
+                                        `Failed to delete profile: ${result.error || result.message
+                                        }`
+                                    );
+                                }
+                            } catch (error) {
+                                console.error("Error deleting profile:", error);
+                                alert(`Network or system error: ${error.message}`);
+                            }
+                        }
+                    });
+                    actionsCell.appendChild(deleteButton);
                 });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                  alert(result.message);
-                  loadProfiles(); // Reload profiles to update the table
-                } else {
-                  alert(
-                    `Failed to delete profile: ${result.error || result.message
-                    }`
-                  );
+            } catch (error) {
+                if (messageDiv) {
+                    messageDiv.textContent = `Error loading profiles: ${error.message}`;
+                    messageDiv.style.color = "red";
                 }
-              } catch (error) {
-                console.error("Error deleting profile:", error);
-                alert(`Network or system error: ${error.message}`);
-              }
+                console.error("Error loading profiles:", error);
             }
-          });
-          actionsCell.appendChild(deleteButton);
-        });
-      } catch (error) {
-        if (messageDiv) {
-          messageDiv.textContent = `Error loading profiles: ${error.message}`;
-          messageDiv.style.color = "red";
         }
-        console.error("Error loading profiles:", error);
-      }
-    }
 
-    // Load profiles when the page is fully loaded
-    document.addEventListener("DOMContentLoaded", loadProfiles);
-  </script>
+        // Load profiles when the page is fully loaded
+        document.addEventListener("DOMContentLoaded", loadProfiles);
+    </script>
 </body>
 
 </html>

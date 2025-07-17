@@ -9,7 +9,8 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
         rel="stylesheet" />
-    <link rel="stylesheet" href="/static/style.css" /> <title>Browser Manager</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <title>Browser Manager | Projects</title>
 </head>
 
 <body>
@@ -44,9 +45,11 @@
 
             <h1 class="content-header">Projects</h1>
 
-            <div class="content-top-bar-actions"> <div class="right">
+            <div class="content-top-bar-actions">
+                <div class="right">
                     <button type="button" class="button">
-                        <img class="button-icon" src="/static/add.svg" alt=""></span> <span class="button-text"><a href="/new-project.html">Add Project</a></span>
+                        <img class="button-icon" src="/static/add.svg" alt=""></span> <span class="button-text"><a
+                                href="/new-project.html">Add Project</a></span>
                     </button>
 
                     <button type="button" class="button">
@@ -54,7 +57,8 @@
                     </button>
 
                     <button type="button" class="button">
-                        <img class="button-icon" src="/static/import-profile.svg" alt="upload-file" title="Import Profile">
+                        <img class="button-icon" src="/static/import-profile.svg" alt="upload-file"
+                            title="Import Profile">
                     </button>
 
                 </div>
@@ -74,24 +78,27 @@
             </div>
 
 
-            <div> <table class="content-table">
+            <div>
+                
+                <table class="content-table">
                     <thead>
                         <tr>
                             <th id="far-left-th"><input type="checkbox" name="select" id="" title="Select All"></th>
                             <th>Project Name</th>
-                            <th>Profiles</th> <th>Last Used</th>
+                            <th>Profiles</th>
+                            <th>Last Used</th>
                             <th id="far-right-th">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="projects-table-body">
-                        </tbody>
+                    </tbody>
                 </table>
                 <div id="message" style="margin-top: 20px; text-align: center; font-weight: bold"></div>
             </div>
 
-            </div>
+        </div>
     </div>
-    
+
     <script>
         const projectsTableBody = document.getElementById("projects-table-body");
         const messageDiv = document.getElementById("message");
@@ -137,7 +144,7 @@
                     nameCell.innerHTML = `<span class="expand-icon">▶</span> ${project.name}`; // Add expand icon
 
                     projectRow.insertCell(2).textContent = project.profile_count; // Display profile count (was <th>Profile Name</th> but now holds count)
-                    
+
                     let lastUsedDisplay = "Never";
                     if (project.last_used_formatted) {
                         // Use the formatted value from backend
@@ -147,7 +154,7 @@
 
                     // Actions cell
                     const actionsCell = projectRow.insertCell(4);
-                    
+
                     // --- Delete Button ---
                     const deleteButton = document.createElement("button");
                     deleteButton.className = "btn-delete"; // Assuming you have .btn-delete styling

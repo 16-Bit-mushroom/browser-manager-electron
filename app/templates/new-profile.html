@@ -1,272 +1,208 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/static/styles.css" />
-    <title>Browser Manager</title>
-  </head>
-  <body>
-  <div class="nav-bar">
-    <ul>
-      <div class="nav-bar-pages">
-        <li>
-          <h2 class="brand-name">Browser Manager</h2>
-        </li>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <title>Browser Manager | Profiles</title>
+</head>
 
-        <li>
-          <a class="nav-link" href="/projects.html"><img class="folder-icon" src="/static/folder-default.svg"
-              alt="folder-icon" />Projects</a>
-        </li>
-        <li>
-          <a class="nav-link" href="/profiles.html"><img class="person-icon" src="/static/person-default.svg"
-              alt="" />Profiles</a>
-        </li>
-      </div>
+<body>
+    <div class="main-container">
 
-      <div class="nav-bar-actions">
-        <li>
-          <input class="search-bar" type="text" placeholder="Search..." />
-        </li>
+        <div class="nav-bar">
+            <div>
+                <h2 class="app-name">Browser Manager</h2>
 
-        <li>
-          <a class="nav-bar-action-icons" href="/new-project.html"><img class="new-icon"
-              src="/static/new-folder-primary.svg" alt="" title="New Project" /></a>
-        </li>
-        <li>
-          <a class="nav-bar-action-icons" href="/new-profile.html"><img class="new-icon"
-              src="/static/new-person-primary.svg" alt="" title="New Profile" /></a>
-        </li>
-        <li>
-          <a class="nav-bar-action-icons" href=""><img class="settings-icon" src="/static/settings-default.svg" alt=""
-              title="Settings" /></a>
-        </li>
-      </div>
-    </ul>
-  </div>
+                <ul class="nav-bar-links">
+                    <li><a href="/projects.html">📁 Projects</a></li>
+                    <li><a href="/profiles.html">👤 Profiles</a></li>
+                    <li><a href="">🌐 Browser</a></li>
+                    <li><a href="">🕥 History</a></li>
+                    <li><a href="">🗑️ Recycle Bin</a></li>
+                </ul>
+            </div>
 
-    <div class="content">
-      <div class="form-section">
-        <div class="form-title">
-          <span style="font-size: 28px; color: #1a6a93">👤</span> New Profile
+            <div>
+                <ul class="nav-bar-links">
+                    <button style="padding: 5px; cursor: pointer;">☀️ Light Mode</button>
+                    <li><a href="">⚙️ Settings</a></li>
+                    <li><a href="/">🔑 Sign Out</a></li>
+                </ul>
+            </div>
         </div>
 
-        <div class="form-left">
-          <label class="form-label">Browser :</label>
-          <div class="browser-options">
-            <label
-              ><input
-                type="radio"
-                name="browser"
-                value="firefox"
-                id="browser-firefox"
-              />
-              <span>🦊 Firefox</span></label
-            >
-            <label
-              ><input
-                type="radio"
-                name="browser"
-                value="brave"
-                id="browser-brave"
-              />
-              <span>🦁 Brave</span></label
-            >
-            <label
-              ><input
-                type="radio"
-                name="browser"
-                value="chrome"
-                id="browser-chrome"
-                checked
-              />
-              <span>🌐 Chrome</span></label
-            >
-          </div>
+        <div class="content-area">
+            <h1 class="content-header">New Profile</h1>
 
-          <label class="form-label">Name :</label>
-          <input
-            class="form-input"
-            type="text"
-            id="profile-name"
-            placeholder="Enter profile name"
-          />
+            <div id="message" style="margin-bottom: 10px; text-align: center;"></div>
 
-          <label class="form-label">Notes :</label>
-          <input
-            class="form-input"
-            type="text"
-            id="profile-notes"
-            placeholder="Enter notes"
-          />
+            <div class="content-card-container">
+                <form id="new-profile-form" class="content-card-add-profile">
+                    <h3>Profile Details</h3>
+                    <label for="browser-type">Choose Browser</label>
+                    <select name="browser" id="browser-type">
+                        <option value="chrome" id="browser-chrome">Chrome</option>
+                        <option value="firefox" id="browser-firefox">Firefox</option>
+                        <option value="brave" id="browser-brave">Brave</option>
+                    </select>
 
-          <label class="form-label">Proxy :</label>
-          <input
-            class="form-input"
-            type="text"
-            id="profile-proxy"
-            placeholder="Proxy:Port (e.g., 127.0.0.1:8888)"
-          />
+                    <label for="profile-name">Profile Name</label>
+                    <input type="text" id="profile-name" placeholder="Juan Cruz" required>
+
+                    <label for="notes">Add a Note (optional)</label>
+                    <input type="text" id="profile-notes" placeholder="Note">
+
+                    <label for="proxy">Add a Proxy (optional)</label>
+                    <input type="text" id="profile-proxy" placeholder="Proxy">
+
+                    <label for="project-id">Choose Project Folder</label>
+                    <select name="project" id="project-id">
+                        <option value="">No Project</option>
+                        </select>
+                </form>
+
+                <div class="content-card-add-profile">
+                    <h3>Options</h3>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="save-cookies" name="save-cookies" checked>
+                        <label for="save-cookies">Save Cookies</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="clear-session-on-exit" name="clear-session-on-exit">
+                        <label for="clear-session-on-exit">Clear Session on Exit</label>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" form="new-profile-form" class="button primary-button">Create Profile</button>
+                        <button type="button" id="cancel-profile" class="button secondary-button">Cancel</button>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <div class="form-right">
-          <label class="form-label">Project :</label>
-          <select class="form-input" id="profile-project-id">
-            <option value="">No Project (Standalone)</option>
-          </select>
-
-          <div class="toggle">
-            <label class="form-label">Save Cookies :</label>
-            <input type="checkbox" id="profile-save-cookies" checked />
-            <span>Yes</span>
-          </div>
-          <div class="toggle">
-            <label class="form-label">Clear session on exit :</label>
-            <input type="checkbox" id="profile-clear-session" checked />
-            <span>Yes</span>
-          </div>
-        </div>
-
-        <div class="form-buttons">
-          <button class="btn-cancel" id="cancel-profile-button">Cancel</button>
-          <button class="btn-create" id="create-profile-button">
-            Create Profile
-          </button>
-        </div>
-        <div
-          id="message"
-          style="margin-top: 20px; text-align: center; font-weight: bold"
-        ></div>
-      </div>
     </div>
 
     <script>
-      // Get references to HTML elements
-      const profileNameInput = document.getElementById("profile-name");
-      const profileNotesInput = document.getElementById("profile-notes");
-      const profileProxyInput = document.getElementById("profile-proxy");
-      const profileProjectIdSelect =
-        document.getElementById("profile-project-id");
-      const profileSaveCookiesCheckbox = document.getElementById(
-        "profile-save-cookies"
-      );
-      const profileClearSessionCheckbox = document.getElementById(
-        "profile-clear-session"
-      );
-      const createProfileButton = document.getElementById(
-        "create-profile-button"
-      );
-      const cancelProfileButton = document.getElementById(
-        "cancel-profile-button"
-      );
-      const messageDiv = document.getElementById("message");
+        document.addEventListener("DOMContentLoaded", async () => {
+            const newProfileForm = document.getElementById("new-profile-form");
+            const profileNameInput = document.getElementById("profile-name");
+            const browserTypeSelect = document.getElementById("browser-type");
+            const profileNotesInput = document.getElementById("profile-notes");
+            const profileProxyInput = document.getElementById("profile-proxy");
+            const profileProjectIdSelect = document.getElementById("project-id");
+            const profileSaveCookiesCheckbox = document.getElementById("save-cookies");
+            const profileClearSessionCheckbox = document.getElementById("clear-session-on-exit");
+            const messageDiv = document.getElementById("message");
+            const cancelProfileButton = document.getElementById("cancel-profile");
 
-      // Function to load projects into the dropdown
-      async function loadProjects() {
-        try {
-          const response = await fetch("/api/projects"); // Assuming a /api/projects endpoint
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          const projects = await response.json();
+            // --- Load Projects into Dropdown ---
+            async function loadProjectsIntoDropdown() {
+                try {
+                    const response = await fetch('/api/projects');
+                    const projects = await response.json();
+                    profileProjectIdSelect.innerHTML = '<option value="">No Project</option>'; // Default option
+                    projects.forEach(project => {
+                        const option = document.createElement('option');
+                        option.value = project.id;
+                        option.textContent = project.name;
+                        profileProjectIdSelect.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error("Error loading projects for dropdown:", error);
+                    messageDiv.textContent = "Error loading projects.";
+                    messageDiv.style.color = "red";
+                }
+            }
+            loadProjectsIntoDropdown(); // Call on page load
 
-          // Clear existing options except "No Project"
-          profileProjectIdSelect.innerHTML =
-            '<option value="">No Project (Standalone)</option>';
+            // --- Form Submission Handler ---
+            newProfileForm.addEventListener("submit", async (event) => {
+                event.preventDefault();
 
-          projects.forEach((project) => {
-            const option = document.createElement("option");
-            option.value = project.id;
-            option.textContent = project.name;
-            profileProjectIdSelect.appendChild(option);
-          });
-        } catch (error) {
-          console.error("Error loading projects:", error);
-          messageDiv.textContent = "Error loading projects for dropdown.";
-          messageDiv.style.color = "red";
-        }
-      }
+                const browser = browserTypeSelect.value;
+                const name = profileNameInput.value.trim();
+                const notes = profileNotesInput.value.trim();
+                const proxy = profileProxyInput.value.trim();
+                const save_cookies = profileSaveCookiesCheckbox.checked;
+                const clear_session_on_exit = profileClearSessionCheckbox.checked;
+                const project_id = profileProjectIdSelect.value ? parseInt(profileProjectIdSelect.value) : null;
 
-      // Call loadProjects when the page loads
-      document.addEventListener("DOMContentLoaded", loadProjects);
+                if (!name) {
+                    messageDiv.textContent = "Profile name cannot be empty.";
+                    messageDiv.style.color = "red";
+                    return;
+                }
 
-      // Add event listener to the "Create Profile" button
-      createProfileButton.addEventListener("click", async () => {
-        const name = profileNameInput.value.trim();
-        const notes = profileNotesInput.value.trim();
-        const proxy = profileProxyInput.value.trim();
-        const projectId = profileProjectIdSelect.value || null; // Get selected project ID, or null if "No Project"
+                messageDiv.textContent = "Creating profile...";
+                messageDiv.style.color = "blue";
 
-        // Get the selected browser
-        const selectedBrowserRadio = document.querySelector(
-          'input[name="browser"]:checked'
-        );
-        const browser = selectedBrowserRadio ? selectedBrowserRadio.value : "";
+                try {
+                    const response = await fetch("/api/create_profile", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            name,
+                            browser,
+                            notes,
+                            proxy,
+                            save_cookies,
+                            clear_session_on_exit,
+                            project_id
+                        }),
+                    });
 
-        const saveCookies = profileSaveCookiesCheckbox.checked;
-        const clearSessionOnExit = profileClearSessionCheckbox.checked;
+                    const result = await response.json();
 
-        // Basic validation
-        if (!name || !browser) {
-          messageDiv.textContent = "Profile Name and Browser are required!";
-          messageDiv.style.color = "red";
-          return;
-        }
+                    if (response.ok) {
+                        messageDiv.textContent = result.message;
+                        messageDiv.style.color = "green";
+                        // Optionally, clear the form or redirect
+                        profileNameInput.value = "";
+                        profileNotesInput.value = "";
+                        profileProxyInput.value = "";
+                        profileSaveCookiesCheckbox.checked = true; // Default to checked
+                        profileClearSessionCheckbox.checked = false; // Default to unchecked
+                        browserTypeSelect.value = "chrome"; // Default to Chrome
+                        profileProjectIdSelect.value = ""; // Reset dropdown
 
-        const data = {
-          name: name,
-          browser: browser,
-          notes: notes,
-          proxy: proxy,
-          save_cookies: saveCookies,
-          clear_session_on_exit: clearSessionOnExit,
-          project_id: projectId, // Send the selected project ID
-        };
+                        setTimeout(() => {
+                            window.location.href = "/profiles.html"; // Redirect to profiles list
+                        }, 1500);
+                    } else {
+                        messageDiv.textContent = `Error: ${result.error || "Something went wrong!"}`;
+                        messageDiv.style.color = "red";
+                    }
+                } catch (error) {
+                    messageDiv.textContent = `Network Error: ${error.message}`;
+                    messageDiv.style.color = "red";
+                    console.error("Fetch error:", error);
+                }
+            });
 
-        try {
-          const response = await fetch("/api/create_profile", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(data),
-          });
+            // --- Cancel Button Handler ---
+            cancelProfileButton.addEventListener("click", () => {
+                window.location.href = "/profiles.html"; // Redirect to profiles list
+            });
 
-          const result = await response.json();
-
-          if (response.ok) {
-            messageDiv.textContent = result.message;
-            messageDiv.style.color = "green";
-            // Optionally, clear the form or redirect
-            profileNameInput.value = "";
-            profileNotesInput.value = "";
-            profileProxyInput.value = "";
-            // Reset checkboxes (if needed, depends on default desired state)
-            profileSaveCookiesCheckbox.checked = true;
-            profileClearSessionCheckbox.checked = true;
-            // Re-select default browser or "No Project"
-            document.getElementById("browser-chrome").checked = true;
-            profileProjectIdSelect.value = ""; // Reset dropdown
-
-            setTimeout(() => {
-              window.location.href = "/profiles.html"; // Redirect to profiles list after 1.5 seconds
-            }, 1500);
-          } else {
-            messageDiv.textContent = `Error: ${
-              result.error || "Something went wrong!"
-            }`;
-            messageDiv.style.color = "red";
-          }
-        } catch (error) {
-          messageDiv.textContent = `Network Error: ${error.message}`;
-          messageDiv.style.color = "red";
-          console.error("Fetch error:", error);
-        }
-      });
-
-      cancelProfileButton.addEventListener("click", () => {
-        window.location.href = "/profiles.html"; // Redirect to profiles list
-      });
+            // Update navigation links for consistency
+            const navLinks = document.querySelectorAll('.nav-bar-links a');
+            navLinks.forEach(link => {
+                if (link.textContent.includes('Projects')) {
+                    link.href = '/projects.html';
+                } else if (link.textContent.includes('Sign Out')) {
+                    link.href = '/'; // Points to login page
+                }
+            });
+        });
     </script>
-  </body>
+</body>
+
 </html>
