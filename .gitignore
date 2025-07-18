@@ -1,9 +1,33 @@
-# PyInstaller output
+# PyInstaller and build output
 dist/
 build/
 
-# Local data directories
-data/
+# Python specific files
 __pycache__/
 *.pyc
-.venv/
+.venv/  # Virtual environment directory
+
+# IDE and Editor files
+.vscode/
+
+# Node.js modules (if this is an Electron project)
+node_modules/
+
+# Electron-specific build/output directories
+# Assuming Electron project root is 'app' or similar
+app/dist/
+app/build/
+app/lib/   # If Electron builds specific libraries here
+app/release/ # Common Electron-builder output directory for installers
+
+# Local data directories (ensure these are truly meant to be ignored)
+# Be cautious ignoring 'data/' if it contains essential non-recreatable app data.
+# If 'data/' is for temporary or user-specific data, it's fine.
+data/
+app/data/
+
+# Windows specific
+*.exe
+*.dll
+*.pyd
+*.so # Linux/macOS shared libraries (though usually handled by PyInstaller output)

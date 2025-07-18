@@ -23,8 +23,8 @@
                 <ul class="nav-bar-links">
                     <li><a href="/projects.html">📁 Projects</a></li>
                     <li><a href="/profiles.html">👤 Profiles</a></li>
-                    <li><a href="">🌐 Browser</a></li>
-                    <li><a href="">🕥 History</a></li>
+                    <li><a href="/browsers.html"">🌐 Browser</a></li>
+                    <!-- <li><a href="">🕥 History</a></li> -->
                     <li><a href="">🗑️ Recycle Bin</a></li>
                 </ul>
             </div>
@@ -119,8 +119,9 @@
                 projectsTableBody.innerHTML = ""; // Clear existing rows
 
                 if (projects.length === 0) {
-                    messageDiv.textContent = "No projects found. Create a new one!";
-                    messageDiv.style.color = "blue";
+                    if (projectsTableBody) {
+                        projectsTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center;">No Projects found. Create a new one!</td></tr>`;
+                    }
                     return;
                 } else {
                     messageDiv.textContent = ""; // Clear loading message
@@ -333,7 +334,7 @@
         }
 
         async function deleteProfile(profileId, profileName) {
-            if (confirm(`Are you sure you want to delete profile: ${profileName}? This will also delete its associated data folder.`)) {
+            if (confirm(`Are you sure you want to delete profile: ${profileName}? This action cannot be undone.`)) {
                 try {
                     const response = await fetch(`/api/profiles/${profileId}`, {
                         method: 'DELETE'

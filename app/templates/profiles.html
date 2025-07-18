@@ -23,8 +23,8 @@
                 <ul class="nav-bar-links">
                     <li><a href="/projects.html">📁 Projects</a></li>
                     <li><a href="/profiles.html">👤 Profiles</a></li>
-                    <li><a href="">🌐 Browser</a></li>
-                    <li><a href="">🕥 History</a></li>
+                    <li><a href="/browsers.html"">🌐 Browser</a></li>
+                    <!-- <li><a href="">🕥 History</a></li> -->
                     <li><a href="">🗑️ Recycle Bin</a></li>
                 </ul>
             </div>
@@ -190,7 +190,7 @@
 
                         if (
                             confirm(
-                                `Are you sure you want to delete profile: ${profileName}? This will also delete its data folder.`
+                                `Are you sure you want to delete profile: ${profileName}? This action cannot be undone.`
                             )
                         ) {
                             try {

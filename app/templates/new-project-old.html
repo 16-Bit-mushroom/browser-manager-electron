@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/static/styles.css" />
+
+    <title>Browser Manager</title>
+  </head>
+
+  <body>
+  <div class="nav-bar">
+    <ul>
+      <div class="nav-bar-pages">
+        <li>
+          <h2 class="brand-name">Browser Manager</h2>
+        </li>
+
+        <li>
+          <a class="nav-link" href="/projects.html"><img class="folder-icon" src="/static/folder-default.svg"
+              alt="folder-icon" />Projects</a>
+        </li>
+        <li>
+          <a class="nav-link" href="/profiles.html"><img class="person-icon" src="/static/person-default.svg"
+              alt="" />Profiles</a>
+        </li>
+      </div>
+
+      <div class="nav-bar-actions">
+        <li>
+          <input class="search-bar" type="text" placeholder="Search..." />
+        </li>
+
+        <li>
+          <a class="nav-bar-action-icons" href="/new-project.html"><img class="new-icon"
+              src="/static/new-folder-primary.svg" alt="" title="New Project" /></a>
+        </li>
+        <li>
+          <a class="nav-bar-action-icons" href="/new-profile.html"><img class="new-icon"
+              src="/static/new-person-primary.svg" alt="" title="New Profile" /></a>
+        </li>
+        <li>
+          <a class="nav-bar-action-icons" href=""><img class="settings-icon" src="/static/settings-default.svg" alt=""
+              title="Settings" /></a>
+        </li>
+      </div>
+    </ul>
+  </div>
+
+    <div class="content">
+      <div class="form-section">
+        <div class="form-title">
+          <span style="font-size: 28px; color: #f6b73c">📁</span> New Project
+        </div>
+
+        <label class="form-label">Project Name :</label>
+        <input
+          class="form-input"
+          type="text"
+          id="project-name"
+          placeholder="Enter project name"
+        />
+
+        <label class="form-label">Notes :</label>
+        <input
+          class="form-input"
+          type="text"
+          id="project-notes"
+          placeholder="Enter notes"
+        />
+
+        <div class="form-buttons">
+          <button class="btn-cancel" id="cancel-button">Cancel</button>
+          <button class="btn-create" id="create-project-button">Create</button>
+        </div>
+        <div
+          id="message"
+          style="margin-top: 20px; text-align: center; font-weight: bold"
+        ></div>
+      </div>
+    </div>
+
+    <script>
+      // Get references to our HTML elements
+      const projectNameInput = document.getElementById("project-name");
+      const projectNotesInput = document.getElementById("project-notes");
+      const createButton = document.getElementById("create-project-button");
+      const cancelButton = document.getElementById("cancel-button");
+      const messageDiv = document.getElementById("message"); // For displaying messages
+
+      // Add an event listener to the "Create" button
+      createButton.addEventListener("click", async () => {
+        // 1. Get values from the input fields
+        const name = projectNameInput.value.trim(); // .trim() removes leading/trailing whitespace
+        const notes = projectNotesInput.value.trim();
+
+        // Basic validation
+        if (!name) {
+          messageDiv.textContent = "Project Name cannot be empty!";
+          messageDiv.style.color = "red";
+          return; // Stop execution if validation fails
+        }
+
+        // 2. Prepare the data to be sent (as a JavaScript object)
+        const data = {
+          name: name,
+          notes: notes,
+        };
+
+        try {
+          // 3. Send the data to the Flask backend using fetch API
+          // 'fetch' is a modern way to make network requests in browsers
+          const response = await fetch("/api/create_project", {
+            method: "POST", // We are sending data, so it's a POST request
+            headers: {
+              "Content-Type": "application/json", // Tell the server we are sending JSON
+            },
+            body: JSON.stringify(data), // Convert JavaScript object to a JSON string
+          });
+
+          // 4. Parse the JSON response from the server
+          const result = await response.json();
+
+          // 5. Handle the response
+          if (response.ok) {
+            // Check if the HTTP status code is 200-299 (success)
+            messageDiv.textContent = result.message;
+            messageDiv.style.color = "green";
+            // Optionally, clear the form or redirect after successful creation
+            projectNameInput.value = ""; // Clear the input
+            projectNotesInput.value = ""; // Clear the input
+            setTimeout(() => {
+              window.location.href = "/projects.html"; // Redirect to projects list after 1.5 seconds
+            }, 1500);
+          } else {
+            // If response.ok is false, it means there was an HTTP error (e.g., 400 Bad Request, 500 Internal Server Error)
+            messageDiv.textContent = `Error: ${
+              result.error || "Something went wrong!"
+            }`;
+            messageDiv.style.color = "red";
+          }
+        } catch (error) {
+          // Catch network errors (e.g., server not running)
+          messageDiv.textContent = `Network Error: ${error.message}`;
+          messageDiv.style.color = "red";
+          console.error("Fetch error:", error);
+        }
+      });
+
+      // Add event listener for the Cancel button
+      cancelButton.addEventListener("click", () => {
+        window.location.href = "/projects.html"; // Redirect to projects list
+      });
+    </script>
+  </body>
+</html>

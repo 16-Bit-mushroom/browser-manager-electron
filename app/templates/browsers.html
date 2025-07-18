@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <title>Browser Manager | Browsers</title>
+</head>
+
+<body>
+    <div class="main-container">
+
+        <div class="nav-bar">
+            <div>
+                <h2 class="app-name">Browser Manager</h2>
+
+                <ul class="nav-bar-links">
+                    <li><a href="/projects.html">📁 Projects</a></li>
+                    <li><a href="/profiles.html">👤 Profiles</a></li>
+                    <li><a href="/browsers.html">🌐 Browser</a></li>
+                    <!-- <li><a href="">🕥 History</a></li>  -->
+                    <li><a href="">🗑️ Recycle Bin</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <ul class="nav-bar-links">
+                    <button style="padding: 5px; cursor: pointer;">☀️ Light Mode</button>
+                    <li><a href="">⚙️ Settings</a></li>
+                    <li><a href="/">🔑 Sign Out</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <div id="browser-header-with-toast-wrapper" class="header-with-toast-wrapper">
+                <h1 class="content-header">New Project</h1>
+                <div id="toast-container"></div>
+            </div>
+
+
+            <div id="content-card-container" class="content-card-container">
+
+
+
+                <!-- Show this if Chrome browser downloaded or available -->
+                <div id="chrome-browser-card" class="browser-card">
+                    <img class="browser-icon" src="/static/chrome.png" alt="Download">
+                    <h3>Chrome</h3>
+                    <p>Ver. 123.0.6311.99</p> <!--append browser version-->
+                    <p id="browser-profile-count">3 Profiles saved</p> <!--count associated profiles-->
+                    <button class="browser-delete-icon">Delete</button> <!--Show warning before deleting-->
+                </div>
+
+                <!-- Show this if Firefox browser downloaded or available -->
+                <div id="firefox-browser-card" class="browser-card">
+                    <img class="browser-icon" src="/static/firefox.png" alt="Download">
+                    <h3>Firefox</h3>
+                    <p>Ver. 123.0.6311.99</p> <!--append browser version-->
+                    <p id="browser-profile-count">3 Profiles saved</p>
+                    <button class="browser-delete-icon">Delete</button>
+                </div>
+
+                <div id="brave-browser-card" class="browser-card">
+                    <img class="browser-icon" src="/static/brave.png" alt="Download">
+                    <h3>Brave</h3>
+                    <p>Ver. 123.0.6311.99</p> <!--append browser version-->
+                    <p id="browser-profile-count">3 Profiles saved</p>
+                    <button class="browser-delete-icon">Delete</button>
+                </div>
+
+                <!-- HTML -->
+
+
+
+
+            </div>
+
+
+        </div>
+
+        <!-- JavaScript -->
+        <script>
+            document.querySelectorAll('.download-browser-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const browser = btn.getAttribute('data-browser');
+                    btn.disabled = true;
+                    btn.innerHTML = '⬇️ Downloading...';
+
+                    try {
+                        const res = await fetch('/api/download_browser', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ browser })
+                        });
+                        const data = await res.json();
+
+                        if (data.error) {
+                            alert(`Error downloading ${browser}: ` + data.error);
+                        } else {
+                            alert(`${browser} downloaded successfully.`);
+                            location.reload(); // Refresh the UI
+                        }
+                    } catch (err) {
+                        alert('Download failed.');
+                        console.error(err);
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerHTML = `<img class="add-browser-icon" src="/static/add.svg" alt="Download ${browser}">`;
+                    }
+                });
+            });
+
+
+        </script>
+
+
+
+        <script>
+            document.addEventListener('DOMContentLoaded', async () => {
+                const container = document.getElementById('content-card-container');
+                container.innerHTML = '';
+
+                const allBrowsers = ['chrome', 'firefox', 'brave'];
+                let availableBrowsers = [];
+
+                try {
+                    const res = await fetch('/api/available_browsers');
+                    availableBrowsers = await res.json();
+                } catch (err) {
+                    console.error('Failed to load browsers:', err);
+                    return;
+                }
+
+                allBrowsers.forEach(browser => {
+                    const browserData = availableBrowsers.find(b => b.browser === browser);
+                    const card = document.createElement('div');
+                    card.className = 'browser-card';
+
+                    if (browserData) {
+                        // Browser is available – show info card
+                        const logoSrc = `/static/${browser}.png`;
+                        const name = browser.charAt(0).toUpperCase() + browser.slice(1);
+
+                        card.innerHTML = `
+                <img class="browser-icon" src="${logoSrc}" alt="${name} Logo">
+                <h3>${name}</h3>
+                <p>Ver. ${browserData.version}</p>
+                <p>${browserData.profile_count} Profiles saved</p>
+                <button class="browser-delete-icon">Delete</button>
+            `;
+                    } else {
+                        // Browser not available – show BYOB card
+                        // Browser not available – show download card
+                        const name = browser.charAt(0).toUpperCase() + browser.slice(1);
+                        card.innerHTML = `
+    <img class="browser-icon" src="/static/${browser}.png" alt="${name} Logo">
+    <h3 style="color: lightslategrey;">${name}</h3>
+    <p>Not installed</p>
+    <button class="download-browser-btn" data-browser="${browser}">Download ${name}</button>
+`;
+
+                    }
+
+                    container.appendChild(card);
+                });
+
+                document.querySelectorAll('.download-browser-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const browser = btn.getAttribute('data-browser');
+                        btn.disabled = true;
+                        btn.textContent = `⬇️ Downloading ${browser}...`;
+
+                        try {
+                            const res = await fetch('/api/download_browser', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ browser })
+                            });
+                            const data = await res.json();
+
+                            if (data.error) {
+                                alert(`❌ Failed to download ${browser}: ` + data.error);
+                            } else {
+                                alert(`✅ ${browser} downloaded successfully.`);
+                                location.reload(); // Refresh UI
+                            }
+                        } catch (err) {
+                            alert(`❌ Error downloading ${browser}.`);
+                            console.error(err);
+                        } finally {
+                            btn.disabled = false;
+                            btn.textContent = `Download ${browser}`;
+                        }
+                    });
+                });
+
+            });
+        </script>
+
+
+
+
+
+</body>

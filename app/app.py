@@ -6,6 +6,12 @@ import subprocess
 import shutil
 import sys
 import argparse
+import platform
+import webbrowser
+import zipfile
+import requests
+import hashlib
+import json
 
 # --- Add Argument Parsing ---
 parser = argparse.ArgumentParser(description='Flask Backend for Browser Manager.')
@@ -61,6 +67,7 @@ app.config['PROFILES_DIR'] = os.path.join(MUTABLE_USER_DATA_PATH, 'profiles')
 # Electron Builder handles copying the read-only 'browser_binaries' directory.
 os.makedirs(MUTABLE_USER_DATA_PATH, exist_ok=True)
 os.makedirs(app.config['PROFILES_DIR'], exist_ok=True)
+BROWSER_MANIFEST = os.path.join(os.path.dirname(__file__), 'browsers.json')
 
 #
 def get_db():
@@ -153,6 +160,12 @@ def profiles_page():
         ORDER BY prof.last_used DESC
     ''').fetchall()
     return render_template('profiles.html', profiles=profiles)
+
+
+@app.route('/browsers.html')
+def browsers_page():
+    return render_template('browsers.html')
+
 
 # --- API Endpoints ---
 
@@ -482,7 +495,6 @@ def delete_project(project_id):
         cursor.execute('DELETE FROM projects WHERE id = ?', (project_id,))
         db.commit()
         app.logger.info(f"Project ID {project_id} deleted from database.")
-
         return jsonify({"status": "success", "message": "Project and associated profiles deleted successfully."}), 200
 
     except Exception as e:
@@ -490,7 +502,111 @@ def delete_project(project_id):
         app.logger.error(f"Error deleting project {project_id}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": f"Failed to delete project: {str(e)}"}), 500
 
+@app.route('/api/available_browsers', methods=['GET'])
+def get_available_browsers():
+    browser_binaries_path = app.config['BROWSER_BINARIES_DIR']
+    browser_map = {
+        'chrome': 'GoogleChromePortable',
+        'firefox': 'FirefoxPortable',
+        'brave': 'BravePortable'
+    }
 
+    db = get_db()
+    response = []
+
+    for browser_key, folder_name in browser_map.items():
+        folder_path = os.path.join(browser_binaries_path, folder_name)
+        if os.path.exists(folder_path):
+            count = db.execute('SELECT COUNT(*) FROM profiles WHERE browser = ?', (browser_key,)).fetchone()[0]
+            response.append({
+                'browser': browser_key,
+                'version': '123.0.0',  # (Optional: Replace this with actual version logic later)
+                'profile_count': count
+            })
+
+    return jsonify(response), 200
+
+
+# @app.route('/api/open_browser_folder', methods=['POST'])
+# def open_browser_folder():
+#     try:
+#         if platform.system() == 'Windows':
+#             os.startfile(folder_path)
+#         elif platform.system() == 'Darwin':  # macOS
+#             subprocess.Popen(['open', folder_path])
+#         else:  # Linux
+#             subprocess.Popen(['xdg-open', folder_path])
+#         return jsonify({"message": "Folder opened"}), 200
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/open_browser_folder', methods=['POST'])
+def open_browser_folder():
+    folder_path = app.config['BROWSER_BINARIES_DIR']
+
+    if platform.system() == 'Windows':
+        try:
+            os.startfile(folder_path)  # ✅ This gives better OS-level handling on Windows
+            return jsonify({"success": True})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+    else:
+        return jsonify({"success": False, "error": "Unsupported OS"}), 400
+
+
+def download_file(url, dest_path):
+    response = requests.get(url, stream=True)
+    response.raise_for_status()
+    with open(dest_path, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            f.write(chunk)
+
+def sha256_checksum(file_path):
+    sha256 = hashlib.sha256()
+    with open(file_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(8192), b''):
+            sha256.update(chunk)
+    return sha256.hexdigest()
+
+@app.route('/api/download_browser', methods=['POST'])
+def download_browser():
+    browser = request.json.get('browser')
+    
+    # Load browser manifest
+    with open(BROWSER_MANIFEST) as f:
+        browsers = json.load(f)
+
+    match = next((b for b in browsers if b['browser'] == browser), None)
+    if not match:
+        return jsonify({'error': 'Browser not found in manifest'}), 404
+
+    url = match['download_url']
+    expected_checksum = match['checksum']
+    zip_filename = f"{browser}.zip"
+    zip_path = os.path.join(app.config['BROWSER_BINARIES_DIR'], zip_filename)
+
+    try:
+        # Step 1: Download zip
+        download_file(url, zip_path)
+
+        # # Step 2: Verify checksum
+        # actual_checksum = sha256_checksum(zip_path)
+        # if actual_checksum != expected_checksum:
+        #     os.remove(zip_path)
+        #     return jsonify({'error': 'Checksum mismatch! File may be tampered.'}), 400
+
+        # Step 3: Extract
+        extract_dir = app.config['BROWSER_BINARIES_DIR']
+        os.makedirs(extract_dir, exist_ok=True)
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_dir)
+
+        os.remove(zip_path)
+        return jsonify({'message': f'{browser} downloaded and extracted successfully.'})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # --- MODIFIED Flask RUN block at the end of app.py ---
 if __name__ == '__main__':

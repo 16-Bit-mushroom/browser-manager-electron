@@ -1,0 +1,8 @@
+[
+  {
+    "browser": "firefox",
+    "version": "123.0",
+    "download_url": "https://github.com/16-Bit-mushroom/browser-manager-electron/releases/download/v1.0-browser-pack/firefox-portable.zip",
+    "checksum": "CAB39EC4A3DE702EF10EFB70FC7DB8E020A808481695813D2C38CBD9C679EC2F"
+  }
+]
