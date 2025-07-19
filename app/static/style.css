@@ -362,6 +362,86 @@ div#downloading-browser h5 {
 }
 
 
+/* Confirmation Dialog */
+.dialog-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+.uninstall-card {
+    display: flex;
+    flex-direction: column;
+    background-color: #fefefe;
+    max-width: 482px;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    font-family: 'Poppins', sans-serif;
+}
+
+.uninstall-card-content {
+    display: flex;
+    gap: 16px;
+}
+
+.warning-icon {
+    width: 48px;
+    height: 48px;
+}
+
+.uninstall-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.uninstall-card-text span {
+    font-weight: 600;
+    font-size: 18px;
+    color: #333;
+}
+
+.uninstall-card-text p {
+    font-size: 14px;
+    color: #555;
+}
+
+.uninstall-card-action {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.uninstall-card-action button {
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.uninstall-card-action button.cancel-btn {
+    background-color: #f1f1f1;
+    color: #444;
+}
+
+.uninstall-card-action button.uninstall-btn {
+    background-color: #007bff;
+    color: #fff;
+}
+
+
+
 
 /* ... (existing styles) ... */
 

@@ -582,7 +582,7 @@ def download_browser():
         return jsonify({'error': 'Browser not found in manifest'}), 404
 
     url = match['download_url']
-    expected_checksum = match['checksum']
+    # expected_checksum = match['checksum']
     zip_filename = f"{browser}.zip"
     zip_path = os.path.join(app.config['BROWSER_BINARIES_DIR'], zip_filename)
 
@@ -607,6 +607,28 @@ def download_browser():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route("/uninstall", methods=["POST"])
+def uninstall_browser():
+    data = request.get_json()
+    print("Received uninstall POST:", data)
+
+    browserFolder = data.get("browser_name")  # <-- Match JS key name
+
+    if not browserFolder:
+        return jsonify({"success": False, "message": "No browser name provided"}), 400
+
+    browser_path = os.path.join(app.config['BROWSER_BINARIES_DIR'], browserFolder)
+
+    if not os.path.exists(browser_path):
+        return jsonify({"success": False, "message": "Browser not found"}), 404
+
+    try:
+        shutil.rmtree(browser_path)
+        return jsonify({"success": True, "message": f"{browserFolder} uninstalled"})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
 
 # --- MODIFIED Flask RUN block at the end of app.py ---
 if __name__ == '__main__':

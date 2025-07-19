@@ -40,7 +40,7 @@
 
         <div class="content-area">
             <div id="browser-header-with-toast-wrapper" class="header-with-toast-wrapper">
-                <h1 class="content-header">New Project</h1>
+                <h1 class="content-header">Browsers</h1>
                 <div id="toast-container"></div>
             </div>
 
@@ -50,21 +50,21 @@
 
 
                 <!-- Show this if Chrome browser downloaded or available -->
-                <div id="chrome-browser-card" class="browser-card">
+                <div id="chrome-browser-card" class="browser-card" data-folder="GoogleChromePortable">
                     <img class="browser-icon" src="/static/chrome.png" alt="Download">
                     <h3>Chrome</h3>
                     <p>Ver. 123.0.6311.99</p> <!--append browser version-->
                     <p id="browser-profile-count">3 Profiles saved</p> <!--count associated profiles-->
-                    <button class="browser-delete-icon">Delete</button> <!--Show warning before deleting-->
+                    <button class="browser-delete-icon">Uninstall</button> <!--Show warning before deleting-->
                 </div>
 
                 <!-- Show this if Firefox browser downloaded or available -->
-                <div id="firefox-browser-card" class="browser-card">
+                <div id="firefox-browser-card" class="browser-card" data-folder="FirefoxPortable">
                     <img class="browser-icon" src="/static/firefox.png" alt="Download">
                     <h3>Firefox</h3>
                     <p>Ver. 123.0.6311.99</p> <!--append browser version-->
                     <p id="browser-profile-count">3 Profiles saved</p>
-                    <button class="browser-delete-icon">Delete</button>
+                    <button class="browser-delete-icon">Uninstall</button>
                 </div>
 
                 <div id="brave-browser-card" class="browser-card">
@@ -72,10 +72,40 @@
                     <h3>Brave</h3>
                     <p>Ver. 123.0.6311.99</p> <!--append browser version-->
                     <p id="browser-profile-count">3 Profiles saved</p>
-                    <button class="browser-delete-icon">Delete</button>
+                    <button class="browser-delete-icon">Uninstall</button>
                 </div>
 
                 <!-- HTML -->
+
+
+                <!-- UNINSTALL confirmation dialogue. Render this when Uninstall button is clicked -->
+
+                <div class="uninstall-card">
+                    <div class="uninstall-card-content">
+                        <img class="warning-icon" src="/static/warning.svg" alt="">
+
+                        <div class="uninstall-card-text">
+
+                            <p>
+                                <!-- Add also design here -->
+                                <span>Uninstall Browser</span>
+                                <br>
+                                This action cannot be undone.
+                                <br>
+                                Make sure to back up your profiles before deleting a browser
+
+                            </p>
+
+                        </div>
+
+                    </div>
+                    <div class="uninstall-card-action">
+                        <button>Cancel</button>
+                        <!--add style: bg light grey, text color dark grey, add appropriate size-->
+                        <button type="submit">Uninstall</button>
+                        <!--add style: bg blue, text color white, dd appropriate size-->
+                    </div>
+                </div>
 
 
 
@@ -91,7 +121,7 @@
                 btn.addEventListener('click', async () => {
                     const browser = btn.getAttribute('data-browser');
                     btn.disabled = true;
-                    btn.innerHTML = '⬇️ Downloading...';
+                    btn.innerHTML = 'Installing...';
 
                     try {
                         const res = await fetch('/api/download_browser', {
@@ -102,9 +132,9 @@
                         const data = await res.json();
 
                         if (data.error) {
-                            alert(`Error downloading ${browser}: ` + data.error);
+                            alert(`Error installing ${browser}: ` + data.error);
                         } else {
-                            alert(`${browser} downloaded successfully.`);
+                            alert(`${browser} installed successfully.`);
                             location.reload(); // Refresh the UI
                         }
                     } catch (err) {
@@ -112,7 +142,7 @@
                         console.error(err);
                     } finally {
                         btn.disabled = false;
-                        btn.innerHTML = `<img class="add-browser-icon" src="/static/add.svg" alt="Download ${browser}">`;
+                        btn.innerHTML = `<img class="add-browser-icon" src="/static/add.svg" alt="Install ${browser}">`;
                     }
                 });
             });
@@ -127,7 +157,7 @@
                 const container = document.getElementById('content-card-container');
                 container.innerHTML = '';
 
-                const allBrowsers = ['chrome', 'firefox', 'brave'];
+                const allBrowsers = ['chrome', 'firefox', 'brave']; // You might get this from backend too
                 let availableBrowsers = [];
 
                 try {
@@ -147,25 +177,41 @@
                         // Browser is available – show info card
                         const logoSrc = `/static/${browser}.png`;
                         const name = browser.charAt(0).toUpperCase() + browser.slice(1);
+                        // Assuming browserData has a property like 'folder_name' or 'browser_folder'
+                        // If not, you might need to infer it or have the backend send it.
+                        // For now, let's hardcode based on your previous examples, or ideally,
+                        // get it from browserData.
+                        let folderName;
+                        if (browser === 'chrome') {
+                            folderName = 'GoogleChromePortable';
+                        } else if (browser === 'firefox') {
+                            folderName = 'FirefoxPortable';
+                        } else if (browser === 'brave') {
+                            folderName = 'BravePortable'; // Or whatever your Brave folder is
+                        }
 
+                        // ADD data-folder attribute here 👇
                         card.innerHTML = `
                 <img class="browser-icon" src="${logoSrc}" alt="${name} Logo">
                 <h3>${name}</h3>
                 <p>Ver. ${browserData.version}</p>
                 <p>${browserData.profile_count} Profiles saved</p>
-                <button class="browser-delete-icon">Delete</button>
+                <button class="browser-delete-icon" data-folder="${folderName}">Uninstall</button>
             `;
+                        // Note: I put data-folder on the button for simplicity, but it's
+                        // generally better on the card itself if you want to use closest('.browser-card').dataset.folder
+                        // For the latter, it would be: <div class="browser-card" data-folder="${folderName}">
+                        // and keep your JS: const browserFolder = browserCard.dataset.folder;
+
                     } else {
-                        // Browser not available – show BYOB card
                         // Browser not available – show download card
                         const name = browser.charAt(0).toUpperCase() + browser.slice(1);
                         card.innerHTML = `
-    <img class="browser-icon" src="/static/${browser}.png" alt="${name} Logo">
-    <h3 style="color: lightslategrey;">${name}</h3>
-    <p>Not installed</p>
-    <button class="download-browser-btn" data-browser="${browser}">Download ${name}</button>
-`;
-
+                <img class="browser-icon" src="/static/${browser}.png" alt="${name} Logo">
+                <h3 style="color: lightslategrey;">${name}</h3>
+                <p>Not installed</p>
+                <button class="download-browser-btn" data-browser="${browser}">Install ${name}</button>
+            `;
                     }
 
                     container.appendChild(card);
@@ -175,7 +221,7 @@
                     btn.addEventListener('click', async () => {
                         const browser = btn.getAttribute('data-browser');
                         btn.disabled = true;
-                        btn.textContent = `⬇️ Downloading ${browser}...`;
+                        btn.textContent = `Installing ${browser}...`;
 
                         try {
                             const res = await fetch('/api/download_browser', {
@@ -186,17 +232,17 @@
                             const data = await res.json();
 
                             if (data.error) {
-                                alert(`❌ Failed to download ${browser}: ` + data.error);
+                                alert(`❌ Failed to install ${browser}: ` + data.error);
                             } else {
-                                alert(`✅ ${browser} downloaded successfully.`);
+                                alert(`✅ ${browser} installed successfully.`);
                                 location.reload(); // Refresh UI
                             }
                         } catch (err) {
-                            alert(`❌ Error downloading ${browser}.`);
+                            alert(`❌ Error installing ${browser}.`);
                             console.error(err);
                         } finally {
                             btn.disabled = false;
-                            btn.textContent = `Download ${browser}`;
+                            btn.textContent = `Install ${browser}`;
                         }
                     });
                 });
@@ -204,6 +250,87 @@
             });
         </script>
 
+        <script>
+            function showUninstallDialog(browserName, onConfirm) {
+                // Create overlay + card
+                const backdrop = document.createElement('div');
+                backdrop.className = 'dialog-backdrop';
+
+                backdrop.innerHTML = `
+        <div class="uninstall-card">
+            <div class="uninstall-card-content">
+                <img class="warning-icon" src="/static/warning.svg" alt="Warning" />
+                <div class="uninstall-card-text">
+                    <span>Uninstall ${browserName}</span>
+                    <p>This action cannot be undone. Make sure to back up your profiles before uninstalling.</p>
+                </div>
+            </div>
+            <div class="uninstall-card-action">
+                <button class="cancel-btn">Cancel</button>
+                <button class="uninstall-btn">Uninstall</button>
+            </div>
+        </div>
+    `;
+
+                document.body.appendChild(backdrop);
+
+                backdrop.querySelector('.cancel-btn').addEventListener('click', () => {
+                    document.body.removeChild(backdrop);
+                });
+
+                backdrop.querySelector('.uninstall-btn').addEventListener('click', () => {
+                    document.body.removeChild(backdrop);
+                    if (typeof onConfirm === 'function') onConfirm();
+                });
+            }
+
+            // Attach dialog logic to uninstall buttons
+            document.addEventListener('click', (event) => {
+                if (event.target.matches('.browser-delete-icon')) {
+                    const browserCard = event.target.closest('.browser-card');
+                    const browserName = browserCard.querySelector('h3').textContent.trim();
+                    let browserFolder = "";
+
+                    if (browserName === "Firefox") {
+                        browserFolder = "FirefoxPortable";
+                    } else if (browserName === "Chrome") {
+                        browserFolder = "GoogleChromePortable";
+                    } else {
+                        alert("Unknown browser");
+                        return;
+                    }
+
+
+
+                    showUninstallDialog(browserName, () => {
+                        console.log("browserName:", browserName);
+                        console.log("browserFolder:", browserFolder);
+
+
+                        fetch('/uninstall', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ browser_name: browserFolder })  // << now sends the correct name
+                        })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert(`${browserName} was successfully uninstalled.`);
+                                    location.reload(); // <-- Reload the page to show updated state
+                                } else {
+                                    alert(`Failed to uninstall ${browserName}: ${data.message}`);
+                                }
+                            })
+                            .catch(err => {
+                                alert(`Unexpected error: ${err}`);
+                            });
+                    });
+
+                }
+            });
+        </script>
 
 
 
