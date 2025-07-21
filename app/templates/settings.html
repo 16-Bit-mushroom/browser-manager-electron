@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <title>Settings</title>
+</head>
+
+<body>
+
+    <div class="main-container">
+
+        <div class="nav-bar">
+            <div>
+                <h2 class="app-name">Browser Manager</h2>
+
+                <ul class="nav-bar-links">
+                    <li><a href="/projects.html">📁 Projects</a></li>
+                    <li><a href="/profiles.html">👤 Profiles</a></li>
+                    <li><a href="/browsers.html"">🌐 Browser</a></li>
+                    <!-- <li><a href="">🕥 History</a></li> -->
+                    <li><a href=" /recycle-bin.html">🗑️ Recycle Bin</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <ul class="nav-bar-links">
+                    <!-- <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button> -->
+                    <li><a id="settings-link" href="/settings.html">⚙️ Settings</a></li>
+                    <li><a href="/">🔑 Sign Out</a></li>
+                </ul>
+            </div>
+
+
+
+        </div>
+
+        <div class="content-area">
+
+            <h1 class="content-header">Settings</h1>
+
+            <div class="content-card-container">
+
+                <div class="content-card-container">
+                    <form id="new-profile-form" class="content-card-add-profile">
+                        <!--Re used the form from create new profile-->
+                        <h3>User Settings</h3>
+
+                        <label for="user-name">Username</label>
+                        <input type="text" id="user-name" placeholder="JuanCruz123" required>
+
+                        <label for="password">Password</label>
+                        <input type="password" id="password">
+
+                        <div class="form-actions">
+
+                            <button class="button primary-button" type="submit">Save Changes</button>
+                            <button class="button secondary-button" type="reset">Cancel</button>
+                        </div>
+                    </form>
+
+
+                </div>
+
+
+
+            </div>
+        </div>
+
+</body>
+
+</html>

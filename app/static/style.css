@@ -60,7 +60,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 22px;
+    gap: 8px;
+    
 }
 
 .nav-bar-links a {
@@ -69,12 +70,21 @@
     width: 200px;
     font-size: 14px;
     color: #23262a;
-    background-color: var(--grey);
-    padding: 11px 33px;
+    /* background-color: var(--grey); */
+    padding: 11px 20px;
     border-radius: 8px;
     align-items: start;
     text-align: start;
 
+
+}
+
+.nav-bar-links a:hover {
+    background-color: var(--grey);
+}
+
+#projects-link, #profiles-link, #browsers-link, #settings-link, #recycle-link {
+    background-color: var(--grey);
 
 }
 
@@ -441,6 +451,36 @@ div#downloading-browser h5 {
 }
 
 
+/* ---------- Settings Page -------------- */
+
+.user-settings-card {
+    display: flex;
+    max-width: 1045px;
+    width: 100%;
+    height: auto;
+    background-color: var(--light-grey);
+}
+
+.settings-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    background-color: white;
+    max-width: 500px;
+    width: 100%;
+    gap: 40px;
+    padding: 20px;
+}
+
+.settings-content div {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.settings-content div button {
+    width: 120px;
+}
 
 
 /* ... (existing styles) ... */
@@ -453,7 +493,7 @@ div#downloading-browser h5 {
     min-width: 1045px;
     width: 100%;
     border-radius: 8px;
-    margin: 22px 0;
+    /* margin: 22px 0; */
     background-color: var(--light-grey);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
     /* Soft shadow */
@@ -468,10 +508,16 @@ div#downloading-browser h5 {
     display: flex;
     flex-direction: column;
     padding: 30px;
+    max-width: 525px;
     /* Increased padding */
-    gap: 15px;
+    /* gap: 15px; */
     /* Reduced gap for a tighter look */
     /* min-height removed as flex container will manage height */
+}
+
+#new-profile-form label, #new-project-form label {
+    margin-top: 20px;
+    margin-bottom: 10px;
 }
 
 /* Separator line between the two content-card-add-profile sections */
@@ -496,7 +542,8 @@ div#downloading-browser h5 {
 }
 
 .content-card-add-profile input[type="text"],
-.content-card-add-profile select {
+.content-card-add-profile select,
+.content-card-add-profile input[type="password"] {
     height: 36px;
     /* Modern height */
     border: none;

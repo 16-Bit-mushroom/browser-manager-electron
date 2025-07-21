@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <title>Recycle Bin</title>
+</head>
+
+<body>
+
+    <div class="main-container">
+
+        <div class="nav-bar">
+            <div>
+                <h2 class="app-name">Browser Manager</h2>
+
+                <ul class="nav-bar-links">
+                    <li><a href="/projects.html">📁 Projects</a></li>
+                    <li><a href="/profiles.html">👤 Profiles</a></li>
+                    <li><a href="/browsers.html"">🌐 Browser</a></li>
+                    <!-- <li><a href="">🕥 History</a></li> -->
+                    <li><a id=" recycle-link" href=" /recycle-bin.html">🗑️ Recycle Bin</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <ul class="nav-bar-links">
+                    <!-- <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button> -->
+                    <li><a href="/settings.html">⚙️ Settings</a></li>
+                    <li><a href="/">🔑 Sign Out</a></li>
+                </ul>
+            </div>
+
+
+
+        </div>
+
+        <div class="content-area">
+
+            <h1 class="content-header">Recycle Bin</h1>
+
+            <div class="content-top-bar-actions">
+                <div class="right">
+                    <button type="button" class="button">
+                        <img class="button-icon" src="/static/restore.svg" alt=""></span> <span class="button-text"><a
+                                href="/new-project.html">Restore selected item</a></span>
+                    </button>
+
+                    <button type="button" class="button">
+                        <img class="button-icon" src="/static/delete_forever.svg" alt=""></span> <span class="button-text"><a
+                                href="/new-project.html">Empty recycle-bin </a></span>
+                    </button>
+
+                </div>
+                <input id="search-bar" type="text" placeholder="Search...">
+
+                <div class="left">
+
+
+                    <button type="button" class="button">
+                        <img class="button-icon" src="/static/sort.svg" alt="upload-file" title="Sort Table"> </button>
+
+                </div>
+
+
+            </div>
+
+
+            <div>
+
+                <table class="content-table">
+                    <thead>
+                        <tr>
+                            <th id="far-left-th"><input type="checkbox" name="select" id="" title="Select All"></th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Date deleted</th>
+                        </tr>
+                    </thead>
+                    <tbody id="projects-table-body">
+                    </tbody>
+                </table>
+                <div id="message" style="margin-top: 20px; text-align: center; font-weight: bold"></div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+
+</html>

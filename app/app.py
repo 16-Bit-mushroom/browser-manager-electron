@@ -167,6 +167,15 @@ def browsers_page():
     return render_template('browsers.html')
 
 
+@app.route('/recycle-bin.html')
+def recycle_bin_page():
+    return render_template('recycle-bin.html')
+
+
+@app.route('/settings.html')
+def settings_page():
+    return render_template('settings.html')
+
 # --- API Endpoints ---
 
 @app.route('/api/create_project', methods=['POST'])
