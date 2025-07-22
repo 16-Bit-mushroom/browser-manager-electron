@@ -135,6 +135,14 @@ def new_project_page():
 def new_profile_page():
     return render_template('new-profile.html')
 
+@app.route('/edit-profile.html')
+def edit_profile_page():
+    return render_template('edit-profile.html')
+
+@app.route('/edit-project.html')
+def edit_project_page():
+    return render_template('edit-project.html')
+
 @app.route('/projects.html')
 def projects_page():
     db = get_db()
@@ -225,6 +233,72 @@ def get_projects():
             project_dict['last_used_formatted'] = 'Never'
         projects_list.append(project_dict)
     return jsonify(projects_list), 200
+
+@app.route('/api/projects/<int:project_id>', methods=['GET'])
+def get_project_by_id(project_id):
+    db = get_db()
+    try:
+        cursor = db.cursor()
+        cursor.execute('SELECT id, name, notes, last_used FROM projects WHERE id = ?', (project_id,))
+        project = cursor.fetchone()
+
+        if not project:
+            return jsonify({"error": "Project not found"}), 404
+
+        project_dict = dict(project)
+
+        if project_dict['last_used']:
+            dt_object = datetime.datetime.strptime(project_dict['last_used'], '%Y-%m-%d %H:%M:%S')
+            project_dict['last_used_formatted'] = dt_object.strftime('%B %d, %Y %I:%M %p')
+        else:
+            project_dict['last_used_formatted'] = 'Never'
+
+        return jsonify(project_dict), 200
+    except Exception as e:
+        app.logger.error(f"Error fetching project by ID: {e}", exc_info=True)
+        return jsonify({"error": "Failed to retrieve project"}), 500
+
+
+@app.route('/api/projects/<int:project_id>', methods=['PUT'])
+def edit_project(project_id):
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    name = data.get('name')
+    notes = data.get('notes')
+
+    if not name:
+        return jsonify({"error": "Project name is required"}), 400
+
+    db = get_db()
+    try:
+        cursor = db.cursor()
+
+        # Check if the project exists
+        cursor.execute('SELECT * FROM projects WHERE id = ?', (project_id,))
+        existing = cursor.fetchone()
+        if not existing:
+            return jsonify({"error": "Project not found"}), 404
+
+        # Update the project
+        cursor.execute('''
+            UPDATE projects
+            SET name = ?, notes = ?
+            WHERE id = ?
+        ''', (name, notes, project_id))
+        db.commit()
+
+        return jsonify({"message": "Project updated successfully!"}), 200
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "A project with this name already exists."}), 409
+    except Exception as e:
+        db.rollback()
+        app.logger.error(f"Error updating project: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+
 
 @app.route('/api/create_profile', methods=['POST'])
 def create_profile():
@@ -332,6 +406,36 @@ def get_profiles():
 
     return jsonify(profiles_list), 200
 
+@app.route('/api/profiles/<int:profile_id>', methods=['GET'])
+def get_profile(profile_id):
+    db = get_db()
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM profiles WHERE id = ?", (profile_id,))
+        row = cursor.fetchone()
+
+        if row is None:
+            return jsonify({"error": "Profile not found"}), 404
+
+        profile = {
+            "id": row["id"],
+            "name": row["name"],
+            "browser": row["browser"],
+            "folder": row["folder"],
+            "notes": row["notes"],
+            "proxy": row["proxy"],
+            "save_cookies": bool(row["save_cookies"]),
+            "clear_session_on_exit": bool(row["clear_session_on_exit"]),
+            "project_id": row["project_id"],
+            "last_used": row["last_used"]
+        }
+
+        return jsonify(profile), 200
+    except Exception as e:
+        app.logger.error(f"Error fetching profile: {e}", exc_info=True)
+        return jsonify({"error": "Failed to load profile"}), 500
+
+
 @app.route('/api/profiles/by_project/<int:project_id>', methods=['GET'])
 def get_profiles_by_project(project_id):
     """API endpoint to get profiles associated with a specific project."""
@@ -429,7 +533,55 @@ def launch_profile(profile_id):
     except Exception as e:
         app.logger.error(f"Error launching profile {profile_id}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": f"Failed to launch browser: {str(e)}"}), 500
-    
+
+@app.route('/api/edit_profile/<int:profile_id>', methods=['PUT'])
+def edit_profile(profile_id):
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    name = data.get('name')
+    notes = data.get('notes')
+    proxy = data.get('proxy')
+    save_cookies = data.get('save_cookies')
+    clear_session_on_exit = data.get('clear_session_on_exit')
+    project_id = data.get('project_id')
+
+    if not name:
+        return jsonify({"error": "Profile name is required!"}), 400
+
+    if project_id is not None:
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            return jsonify({"error": "Invalid project ID."}), 400
+
+    db = get_db()
+    try:
+        cursor = db.cursor()
+
+        # Check if profile exists
+        cursor.execute("SELECT * FROM profiles WHERE id = ?", (profile_id,))
+        profile = cursor.fetchone()
+
+        if profile is None:
+            return jsonify({"error": "Profile not found."}), 404
+
+        # Do not allow changing the browser type or folder path
+
+        cursor.execute('''
+            UPDATE profiles
+            SET name = ?, notes = ?, proxy = ?, save_cookies = ?, clear_session_on_exit = ?, project_id = ?
+            WHERE id = ?
+        ''', (name, notes, proxy, save_cookies, clear_session_on_exit, project_id, profile_id))
+
+        db.commit()
+        return jsonify({"message": "Profile updated successfully!"}), 200
+    except Exception as e:
+        db.rollback()
+        app.logger.error(f"Error updating profile: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/api/profiles/<int:profile_id>', methods=['DELETE'])
 def delete_profile(profile_id):

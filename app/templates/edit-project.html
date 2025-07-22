@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <title>Browser Manager | Edit Project</title>
+</head>
+
+<body>
+    <div class="main-container">
+
+        <div class="nav-bar">
+            <div>
+                <h2 class="app-name">Browser Manager</h2>
+
+                <ul class="nav-bar-links">
+                    <li><a href="/projects.html">📁 Projects</a></li>
+                    <li><a href="/profiles.html">👤 Profiles</a></li>
+                    <li><a href="/browsers.html"">🌐 Browser</a></li>
+                    <!-- <li><a href="">🕥 History</a></li> -->
+                    <li><a href=" /recycle-bin.html">🗑️ Recycle Bin</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <ul class="nav-bar-links">
+                    <!-- <button style="padding: 5px; cursor: pointer;">☀️ Light Mode</button> -->
+                    <li><a href="/settings.html">⚙️ Settings</a></li>
+                    <li><a href="/">🔑 Sign Out</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <div class="header-with-toast-wrapper">
+                <h1 class="content-header">Edit Project</h1>
+                <div id="toast-container"></div>
+            </div>
+
+
+            <div class="content-card-container">
+                <form id="new-project-form" class="content-card-add-profile">
+                    <h3>Project Details</h3>
+                    <label for="project-name">Project Name</label>
+                    <input type="text" id="project-name" placeholder="E.g., Web Design Project" required>
+
+                    <label for="project-notes">Add a Note (optional)</label>
+                    <input type="text" id="project-notes" placeholder="Notes about this project">
+
+                    <div class="form-actions">
+                        <button type="submit" form="new-project-form" class="button primary-button">Save Changes</button>
+                        <button type="button" id="cancel-project" class="button secondary-button">Cancel</button>
+                    </div>
+                </form>
+
+                <div class="content-card-add-profile"
+                    style="justify-content: center; align-items: center; color: var(--dark-grey);">
+                    <p>
+                        This section can be used for additional project settings, <br>
+                        such as integrations or advanced options, if needed in the future.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function showToast(message, type = 'info', duration = 3000) {
+                const toastContainer = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+
+                toastContainer.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.offsetWidth;
+                    toast.classList.add('hide');
+                    toast.addEventListener('transitionend', () => {
+                        toast.remove();
+                    }, { once: true });
+                }, duration);
+            }
+
+            document.addEventListener("DOMContentLoaded", async () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const projectId = urlParams.get("id");
+
+                const projectForm = document.getElementById("new-project-form");
+                const projectNameInput = document.getElementById("project-name");
+                const projectNotesInput = document.getElementById("project-notes");
+                const cancelButton = document.getElementById("cancel-project");
+
+                // Load project details for editing
+                if (projectId) {
+                    try {
+                        const response = await fetch(`/api/projects/${projectId}`);
+                        const project = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(project.error || "Unable to load project.");
+                        }
+
+                        projectNameInput.value = project.name;
+                        projectNotesInput.value = project.notes || "";
+                    } catch (error) {
+                        console.error("Error loading project:", error);
+                        showToast(`Error loading project: ${error.message}`, "error");
+                    }
+                }
+
+                // Handle submission for update
+                projectForm.addEventListener("submit", async (event) => {
+                    event.preventDefault();
+
+                    const name = projectNameInput.value.trim();
+                    const notes = projectNotesInput.value.trim();
+
+                    if (!name) {
+                        showToast("Project name cannot be empty.", "warning");
+                        return;
+                    }
+
+                    showToast(projectId ? "Updating project..." : "Creating project...", "info", 5000);
+
+                    try {
+                        const response = await fetch(`/api/projects/${projectId}`, {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({ name, notes }),
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            showToast(result.message, "success");
+                            setTimeout(() => {
+                                window.location.href = "/projects.html";
+                            }, 1500);
+                        } else {
+                            showToast(`Error: ${result.error || "Something went wrong!"}`, "error");
+                        }
+                    } catch (error) {
+                        showToast(`Network Error: ${error.message}`, "error");
+                        console.error("Fetch error:", error);
+                    }
+                });
+
+                cancelButton.addEventListener("click", () => {
+                    window.location.href = "/projects.html";
+                });
+
+                const navLinks = document.querySelectorAll('.nav-bar-links a');
+                navLinks.forEach(link => {
+                    if (link.textContent.includes('Projects')) {
+                        link.href = '/projects.html';
+                    } else if (link.textContent.includes('Sign Out')) {
+                        link.href = '/';
+                    }
+                });
+            });
+        </script>
+
+
+</body>
+
+</html>

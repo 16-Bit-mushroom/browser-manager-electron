@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <title>Browser Manager | Profiles</title>
+</head>
+
+<body>
+    <div class="main-container">
+
+        <div class="nav-bar">
+            <div>
+                <h2 class="app-name">Browser Manager</h2>
+
+                <ul class="nav-bar-links">
+                    <li><a href="/projects.html">📁 Projects</a></li>
+                    <li><a href="/profiles.html">👤 Profiles</a></li>
+                    <li><a href="/browsers.html"">🌐 Browser</a></li>
+                    <!-- <li><a href="">🕥 History</a></li> -->
+                    <li><a href=" /recycle-bin.html">🗑️ Recycle Bin</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <ul class="nav-bar-links">
+                    <!-- <button style="padding: 5px; cursor: pointer;">☀️ Light Mode</button> -->
+                    <li><a href="/settings.html">⚙️ Settings</a></li>
+                    <li><a href="/">🔑 Sign Out</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <h1 class="content-header">Edit Profile</h1>
+
+            <div id="message" style="margin-bottom: 10px; text-align: center;"></div>
+
+            <div class="content-card-container">
+                <form id="new-profile-form" class="content-card-add-profile">
+                    <h3>Profile Details</h3>
+                    <label for="browser-type">Choose Browser</label>
+                    <select name="browser" id="browser-type" disabled>
+                        <option value="chrome" id="browser-chrome">Chrome</option>
+                        <option value="firefox" id="browser-firefox">Firefox</option>
+                        <option value="brave" id="browser-brave">Brave</option>
+                    </select>
+
+                    <label for="profile-name">Profile Name</label>
+                    <input type="text" id="profile-name" placeholder="Juan Cruz" required>
+
+                    <label for="notes">Add a Note (optional)</label>
+                    <input type="text" id="profile-notes" placeholder="Note">
+
+                    <label for="proxy">Add a Proxy (optional)</label>
+                    <input type="text" id="profile-proxy" placeholder="Proxy">
+
+                    <label for="project-id">Choose Project Folder</label>
+                    <select name="project" id="project-id">
+                        <option value="">No Project</option>
+                    </select>
+                </form>
+
+                <div class="content-card-add-profile">
+                    <h3>Options</h3>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="save-cookies" name="save-cookies" checked>
+                        <label for="save-cookies">Save Cookies</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="clear-session-on-exit" name="clear-session-on-exit">
+                        <label for="clear-session-on-exit">Clear Session on Exit</label>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" form="new-profile-form" class="button primary-button">Update
+                            Profile</button>
+
+                        <button type="button" id="cancel-profile" class="button secondary-button">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const profileId = urlParams.get('id');
+            const isEditMode = !!profileId;
+
+            const form = document.getElementById("new-profile-form");
+            const messageDiv = document.getElementById("message");
+
+            // Fetch and preload existing data
+            if (isEditMode) {
+                try {
+                    const response = await fetch(`/api/profiles/${profileId}`);
+                    const profile = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(profile.error || "Failed to load profile.");
+                    }
+
+                    document.getElementById("profile-name").value = profile.name;
+                    document.getElementById("browser-type").value = profile.browser;
+                    document.getElementById("profile-notes").value = profile.notes || "";
+                    document.getElementById("profile-proxy").value = profile.proxy || "";
+                    document.getElementById("save-cookies").checked = profile.save_cookies;
+                    document.getElementById("clear-session-on-exit").checked = profile.clear_session_on_exit;
+
+                    async function loadProjectsIntoDropdown() {
+                        const projectSelect = document.getElementById("project-id");
+                        const messageDiv = document.getElementById("message");
+
+                        try {
+                            const response = await fetch('/api/projects');
+                            const projects = await response.json();
+                            projectSelect.innerHTML = '<option value="">No Project</option>'; // Default option
+
+                            projects.forEach(project => {
+                                const option = document.createElement('option');
+                                option.value = project.id;
+                                option.textContent = project.name;
+                                projectSelect.appendChild(option);
+                            });
+                        } catch (error) {
+                            console.error("Error loading projects for dropdown:", error);
+                            if (messageDiv) {
+                                messageDiv.textContent = "Error loading projects.";
+                                messageDiv.style.color = "red";
+                            }
+                        }
+                    }
+                    await loadProjectsIntoDropdown();
+
+
+
+                } catch (error) {
+                    messageDiv.textContent = `Error loading profile: ${error.message}`;
+                    messageDiv.style.color = "red";
+                }
+            }
+
+            // Handle form submission
+            form.addEventListener("submit", async (event) => {
+                event.preventDefault();
+
+                const data = {
+                    name: document.getElementById("profile-name").value.trim(),
+                    notes: document.getElementById("profile-notes").value.trim(),
+                    proxy: document.getElementById("profile-proxy").value.trim(),
+                    save_cookies: document.getElementById("save-cookies").checked,
+                    clear_session_on_exit: document.getElementById("clear-session-on-exit").checked,
+                    project_id: document.getElementById("project-id").value || null,
+                };
+
+                const endpoint = isEditMode ? `/api/edit_profile/${profileId}` : "/api/create_profile";
+                const method = isEditMode ? "PUT" : "POST";
+
+                try {
+                    const response = await fetch(endpoint, {
+                        method,
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        messageDiv.textContent = result.message;
+                        messageDiv.style.color = "green";
+                        setTimeout(() => window.location.href = "/profiles.html", 1500);
+                    } else {
+                        messageDiv.textContent = result.error || "Something went wrong!";
+                        messageDiv.style.color = "red";
+                    }
+                } catch (err) {
+                    console.error(err);
+                    messageDiv.textContent = "Network error.";
+                    messageDiv.style.color = "red";
+                }
+            });
+        });
+    </script>
+
+
+</body>
+
+</html>

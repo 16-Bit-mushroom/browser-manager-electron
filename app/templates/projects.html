@@ -25,7 +25,7 @@
                     <li><a href="/profiles.html">👤 Profiles</a></li>
                     <li><a href="/browsers.html"">🌐 Browser</a></li>
                     <!-- <li><a href="">🕥 History</a></li> -->
-                    <li><a href="/recycle-bin.html">🗑️ Recycle Bin</a></li>
+                    <li><a href=" /recycle-bin.html">🗑️ Recycle Bin</a></li>
                 </ul>
             </div>
 
@@ -79,7 +79,7 @@
 
 
             <div>
-                
+
                 <table class="content-table">
                     <thead>
                         <tr>
@@ -204,6 +204,10 @@
                     editButton.addEventListener("click", (event) => {
                         event.stopPropagation(); // Prevent row expansion when clicking button
                         alert(`Edit project: ${project.name} (ID: ${project.id})`);
+                        window.location.href = `/edit-project.html?id=${project.id}`;
+
+
+
                     });
                     actionsCell.appendChild(editButton);
 
@@ -289,7 +293,10 @@
                                         <td>${profile.last_used_formatted}</td>
                                         <td>
                                             <button class="btn-launch" onclick="launchProfile(${profile.id})">🚀</button>
-                                            <button class="btn-edit" style="margin-left:8px;" onclick="alert('Edit profile: ${profile.name}')">✏️</button>
+                                            <button class="btn-edit" style="margin-left:8px;" onclick="window.location.href = '/edit-profile.html?id=' + ${profile.id}">✏️</button>
+
+                                                                    
+
                                             <button class="btn-delete" style="margin-left:8px;" onclick="deleteProfile(${profile.id}, '${profile.name}')">🗑️</button>
                                         </td>
                                     </tr>
