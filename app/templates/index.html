@@ -37,17 +37,45 @@
 
       </div>
 
-        <a class="login-button" href="/projects.html">Log in</a>
+      <button id="login-button" class="login-button">Log in</button>
+
 
     </div>
 
 
-
-
   </div>
+  
+  <script>
+    document.getElementById("login-button").addEventListener("click", async () => {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (!username || !password) {
+        alert("Please enter both username and password.");
+        return;
+      }
+
+      try {
+        const response = await fetch('/login', {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          window.location.href = "/projects.html";
+        } else {
+          alert(result.error);
+        }
+      } catch (error) {
+        alert("Network error: " + error.message);
+      }
+    });
+  </script>
 
 
-  </div>
 
 </body>
 

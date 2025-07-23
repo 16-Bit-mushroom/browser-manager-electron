@@ -1,6 +1,8 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request, redirect, url_for, g, jsonify
+from flask import Flask, render_template, request, redirect, url_for, g, jsonify, session
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 import datetime
 import subprocess
 import shutil
@@ -20,6 +22,15 @@ args = parser.parse_args()
 # --- End Argument Parsing ---
 
 app = Flask(__name__)
+app.secret_key = 'super-secret-123'
+
+def login_required_page(view_func):
+    @wraps(view_func)
+    def wrapper(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('index'))  # redirect to login
+        return view_func(*args, **kwargs)
+    return wrapper
 
 # --- MODIFIED PATH CONFIGURATION for different data types ---
 def get_application_paths():
@@ -115,12 +126,37 @@ def init_db():
                 FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
             )
         ''')
+
+        db.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL
+        )
+    ''')
+
+        
         db.commit()
         print("Database initialized.")
+
+
+def create_default_admin():
+    db = get_db()
+    cursor = db.execute('SELECT * FROM users WHERE username = ?', ('admin',))
+    if cursor.fetchone() is None:
+        password_hash = generate_password_hash('admin123')
+        db.execute('INSERT INTO users (username, password_hash) VALUES (?, ?)', 
+                   ('admin', password_hash))
+        db.commit()
+        print("✅ Default admin created: admin / admin123")
+    else:
+        print("ℹ️ Default admin already exists.")
+
 
 # Call init_db when the application starts
 with app.app_context():
     init_db()
+    create_default_admin()
 
 # --- Routes for serving HTML pages ---
 @app.route('/')
@@ -128,22 +164,32 @@ def index():
     return render_template('index.html')
 
 @app.route('/new-project.html')
+@login_required_page
+
 def new_project_page():
     return render_template('new-project.html')
 
 @app.route('/new-profile.html')
+@login_required_page
+
 def new_profile_page():
     return render_template('new-profile.html')
 
 @app.route('/edit-profile.html')
+@login_required_page
+
 def edit_profile_page():
     return render_template('edit-profile.html')
 
 @app.route('/edit-project.html')
+@login_required_page
+
 def edit_project_page():
     return render_template('edit-project.html')
 
 @app.route('/projects.html')
+@login_required_page
+
 def projects_page():
     db = get_db()
     # Join with profiles table to count profiles per project for display
@@ -158,6 +204,8 @@ def projects_page():
     return render_template('projects.html', projects=projects)
 
 @app.route('/profiles.html')
+@login_required_page
+
 def profiles_page():
     db = get_db()
     # Join with projects table to show project name instead of just ID
@@ -171,20 +219,55 @@ def profiles_page():
 
 
 @app.route('/browsers.html')
+@login_required_page
+
 def browsers_page():
     return render_template('browsers.html')
 
 
 @app.route('/recycle-bin.html')
+@login_required_page
+
 def recycle_bin_page():
     return render_template('recycle-bin.html')
 
 
 @app.route('/settings.html')
+@login_required_page
+
 def settings_page():
     return render_template('settings.html')
 
+@app.route('/logout')
+def logout():
+    session.clear()  # Wipe all session data
+    return redirect(url_for('index'))
+
+
 # --- API Endpoints ---
+
+@app.route('/login', methods=['POST'])
+def login():
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({"error": "Username and password required."}), 400
+
+    db = get_db()
+    user = db.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+
+    if user and check_password_hash(user['password_hash'], password):
+        session['user_id'] = user['id']
+        session['username'] = user['username']
+        return jsonify({"message": "Login successful"}), 200
+    else:
+        return jsonify({"error": "Invalid username or password"}), 401
+
 
 @app.route('/api/create_project', methods=['POST'])
 def create_project():

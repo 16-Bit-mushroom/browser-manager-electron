@@ -61,4 +61,17 @@ body {
     text-align: center;
     border-radius: 5px;
     margin-top: 20px;
+    border: none;
+}
+
+.login-button:hover {
+        background-color: #4178c0fa;
+        cursor: pointer;
+
+}
+
+.login-button:active {
+        background-color: #104891fa;
+        cursor: pointer;
+
 }

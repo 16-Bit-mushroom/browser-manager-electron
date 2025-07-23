@@ -33,7 +33,8 @@
                 <ul class="nav-bar-links">
                     <!-- <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button> -->
                     <li><a href="/settings.html">⚙️ Settings</a></li>
-                    <li><a href="/">🔑 Sign Out</a></li>
+                    <li><a href="/logout">🔑 Sign Out</a></li>
+
                 </ul>
             </div>
 
@@ -62,7 +63,7 @@
                     </button>
 
                 </div>
-                <input id="search-bar" type="text" placeholder="Search...">
+                <input id="search-bar" type="text" placeholder="Search profiles, projects, or notes...">
 
                 <div class="left">
                     <button type="button" class="button">
@@ -132,6 +133,8 @@
                     const projectRow = projectsTableBody.insertRow();
                     projectRow.classList.add("project-row"); // Add class for styling and click handling
                     projectRow.dataset.projectId = project.id; // Store project ID in a data attribute
+                    projectRow.dataset.notes = project.notes || "";
+
 
                     // Checkbox column
                     const checkboxCell = projectRow.insertCell(0);
@@ -232,6 +235,28 @@
                 console.error("Error loading projects:", error);
             }
         }
+
+        let allProfilesByProject = {}; // project_id -> array of profiles
+
+        async function preloadAllProfiles() {
+            try {
+                const response = await fetch("/api/profiles");
+                const profiles = await response.json();
+
+                allProfilesByProject = {};
+
+                profiles.forEach(profile => {
+                    const projectId = profile.project_id;
+                    if (!allProfilesByProject[projectId]) {
+                        allProfilesByProject[projectId] = [];
+                    }
+                    allProfilesByProject[projectId].push(profile);
+                });
+            } catch (error) {
+                console.error("Failed to preload profiles:", error);
+            }
+        }
+
 
         async function toggleProfiles(projectId, projectRow, profileSubRow) {
             const profileContainer = document.getElementById(
@@ -360,9 +385,49 @@
             }
         }
 
-
         // Load projects when the page is fully loaded
-        document.addEventListener("DOMContentLoaded", loadProjects);
+        document.addEventListener("DOMContentLoaded", async () => {
+            await preloadAllProfiles();
+            loadProjects();
+        });
+
+
+        document.getElementById("search-bar").addEventListener("input", function () {
+            const query = this.value.trim().toLowerCase();
+            const rows = document.querySelectorAll("#projects-table-body tr.project-row");
+
+            rows.forEach((row) => {
+                const projectId = row.dataset.projectId;
+                const projectName = row.cells[1].textContent.trim().toLowerCase();
+                const notes = row.dataset.notes ? row.dataset.notes.toLowerCase() : "";
+                const subRow = row.nextElementSibling;
+
+                let match = projectName.includes(query) || notes.includes(query);
+
+                // Check if any profile under this project matches
+                const profiles = allProfilesByProject[projectId] || [];
+                for (const profile of profiles) {
+                    if ((profile.name || "").toLowerCase().includes(query)) {
+                        match = true;
+                        break;
+                    }
+                }
+
+                if (match) {
+                    row.style.display = "";
+                    if (subRow && subRow.classList.contains("profile-sub-table-row")) {
+                        subRow.style.display = "";
+                    }
+                } else {
+                    row.style.display = "none";
+                    if (subRow && subRow.classList.contains("profile-sub-table-row")) {
+                        subRow.style.display = "none";
+                    }
+                }
+            });
+        });
+
+
     </script>
 </body>
 

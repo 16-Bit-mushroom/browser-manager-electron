@@ -29,7 +29,7 @@
     /* height: auto; */
     margin: 0 auto;
     padding: 22px;
-    background-color: #D9D9D9;
+    background-color: #f3f5f7;
     display: flex;
 
 }
@@ -167,7 +167,7 @@
     border: none;
     border-radius: 5px;
     padding-left: 14px;
-    width: 233px;
+    width: 300px;
 }
 
 .header-with-toast-wrapper {
