@@ -21,23 +21,22 @@
                 <h2 class="app-name">Browser Manager</h2>
 
                 <ul class="nav-bar-links">
-                    <li><a href="/projects.html">📁 Projects</a></li>
-                    <li><a id="profiles-link" href="/profiles.html">👤 Profiles</a></li>
-                    <li><a href="/browsers.html"">🌐 Browser</a></li>
+                    <li><a  href="/projects.html"><img class="button-icon" src="/static/projects.svg" alt="">Projects</a></li>
+                    <li><a id="profiles-link" href="/profiles.html"><img class="button-icon" src="/static/profiles.svg" alt="">Profiles</a></li>
+                    <li><a href="/browsers.html"><img class="button-icon" src="/static/browsers.svg" alt="">Browser</a></li>
                     <!-- <li><a href="">🕥 History</a></li> -->
-                    <li><a href=" /recycle-bin.html">🗑️ Recycle Bin</a></li>
+                    <li><a href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg" alt="">Recycle Bin</a></li>
                 </ul>
             </div>
 
             <div>
                 <ul class="nav-bar-links">
                     <!-- <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button> -->
-                    <li><a href="/settings.html">⚙️ Settings</a></li>
-                    <li><a href="/logout">🔑 Sign Out</a></li>
+                    <li><a href="/settings.html"><img class="button-icon" src="/static/settings.svg" alt="">Settings</a></li>
+                    <li><a href="/logout"><img class="button-icon" src="/static/logout.svg" alt="">Sign Out</a></li>
+
                 </ul>
             </div>
-
-
 
         </div>
 
@@ -140,11 +139,27 @@
 
                     const launchButton = document.createElement("button");
                     launchButton.className = "btn-create"; // Assuming .btn-create style is available
-                    launchButton.textContent = "Launch";
+                    // launchButton.textContent = "Launch";
+                    launchButton.title = "Launch";
                     launchButton.dataset.profileId = profile.id;
+                    launchButton.style.border = "none";
+                    launchButton.style.marginRight = "5px";
+                    launchButton.style.cursor = "pointer";
+
+                    // Create and add the image instead of emoji
+                    const launchIcon = document.createElement("img");
+                    launchIcon.src = "/static/launch.svg";  // Path to your SVG icon
+                    launchIcon.alt = "Launch";
+                    launchIcon.className = "button-icon";   // Optional: reuse your icon styling
+                    launchIcon.style.width = "24px";        // Adjust as needed
+
+
+
+                    launchButton.appendChild(launchIcon);
 
                     launchButton.addEventListener("click", async (event) => {
-                        const profileId = event.target.dataset.profileId;
+                        const profileId = event.currentTarget.dataset.profileId; // ✅ FIXED
+
                         if (!profileId) {
                             console.error("Profile ID not found for launch button.");
                             alert("Error: Could not determine profile to launch.");
@@ -177,12 +192,31 @@
                             alert(`Network or system error: ${error.message}`);
                         }
                     });
+
                     actionsCell.appendChild(launchButton);
 
                     const deleteButton = document.createElement("button");
                     deleteButton.className = "btn-delete"; // Assuming .btn-delete style is available
-                    deleteButton.textContent = "Delete";
+                    deleteButton.title = "Delete";
+
                     deleteButton.style.marginLeft = "8px"; // Add some spacing
+
+                    deleteButton.style.border = "none";
+                    deleteButton.style.marginRight = "5px";
+                    deleteButton.style.cursor = "pointer";
+
+
+                    // Create and add the image instead of emoji
+                    const deleteIcon = document.createElement("img");
+                    deleteIcon.src = "/static/delete.svg";  // Path to your SVG icon
+                    deleteIcon.alt = "Delete";
+                    deleteIcon.className = "button-icon";   // Optional: reuse your icon styling
+                    deleteIcon.style.width = "24px";        // Adjust as needed
+
+
+
+                    deleteButton.appendChild(deleteIcon);
+
                     deleteButton.addEventListener("click", async () => {
                         const profileId = profile.id;
                         const profileName = profile.name;
@@ -219,8 +253,23 @@
 
                     const editButton = document.createElement("button");
                     editButton.className = "edit-delete"; // Assuming .btn-delete style is available
-                    editButton.textContent = "Edit";
                     editButton.style.marginLeft = "8px"; // Add some spacing
+                    editButton.title = "Edit";
+
+                    editButton.style.border = "none";
+                    editButton.style.marginRight = "5px";
+                    editButton.style.cursor = "pointer";
+
+
+                    // Create and add the image instead of emoji
+                    const editIcon = document.createElement("img");
+                    editIcon.src = "/static/edit.svg";  // Path to your SVG icon
+                    editIcon.alt = "Delete";
+                    editIcon.className = "button-icon";   // Optional: reuse your icon styling
+                    editIcon.style.width = "24px";        // Adjust as needed
+
+                    editButton.appendChild(editIcon);
+
                     editButton.addEventListener("click", () => {
                         const profileId = profile.id;
                         window.location.href = `/edit-profile.html?id=${profileId}`;

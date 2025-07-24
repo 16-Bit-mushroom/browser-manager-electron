@@ -21,24 +21,22 @@
                 <h2 class="app-name">Browser Manager</h2>
 
                 <ul class="nav-bar-links">
-                    <li><a id="projects-link" href="/projects.html">📁 Projects</a></li>
-                    <li><a href="/profiles.html">👤 Profiles</a></li>
-                    <li><a href="/browsers.html"">🌐 Browser</a></li>
+                    <li><a id="projects-link" href="/projects.html"><img class="button-icon" src="/static/projects.svg" alt="">Projects</a></li>
+                    <li><a href="/profiles.html"><img class="button-icon" src="/static/profiles.svg" alt="">Profiles</a></li>
+                    <li><a href="/browsers.html"><img class="button-icon" src="/static/browsers.svg" alt="">Browser</a></li>
                     <!-- <li><a href="">🕥 History</a></li> -->
-                    <li><a href=" /recycle-bin.html">🗑️ Recycle Bin</a></li>
+                    <li><a href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg" alt="">Recycle Bin</a></li>
                 </ul>
             </div>
 
             <div>
                 <ul class="nav-bar-links">
                     <!-- <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button> -->
-                    <li><a href="/settings.html">⚙️ Settings</a></li>
-                    <li><a href="/logout">🔑 Sign Out</a></li>
+                    <li><a href="/settings.html"><img class="button-icon" src="/static/settings.svg" alt="">Settings</a></li>
+                    <li><a href="/logout"><img class="button-icon" src="/static/logout.svg" alt="">Sign Out</a></li>
 
                 </ul>
             </div>
-
-
 
         </div>
 
@@ -54,12 +52,11 @@
                     </button>
 
                     <button type="button" class="button">
-                        <img class="button-icon" src="/static/export-file.svg" alt="upload-file" title="Export Profile">
+                        <img class="button-icon" src="/static/file_save.svg" alt="upload-file" title="Export Profile">
                     </button>
 
                     <button type="button" class="button">
-                        <img class="button-icon" src="/static/import-profile.svg" alt="upload-file"
-                            title="Import Profile">
+                        <img class="button-icon" src="/static/upload_file.svg" alt="upload-file" title="Import Profile">
                     </button>
 
                 </div>
@@ -161,10 +158,25 @@
 
                     // --- Delete Button ---
                     const deleteButton = document.createElement("button");
-                    deleteButton.className = "btn-delete"; // Assuming you have .btn-delete styling
-                    deleteButton.textContent = "🗑️"; // Icon as per your new design
-                    deleteButton.title = "Delete Project"; // Title for hover
-                    deleteButton.style.marginLeft = "8px"; // Adjust spacing as needed
+                    deleteButton.className = "btn-delete";
+                    deleteButton.title = "Delete Project";
+                    deleteButton.style.marginLeft = "8px";
+                    deleteButton.style.border = "none";
+                    deleteButton.style.marginRight = "5px";
+                    deleteButton.style.cursor = "pointer";
+
+
+                    // Create and add the image instead of emoji
+                    const deleteIcon = document.createElement("img");
+                    deleteIcon.src = "/static/delete.svg";  // Path to your SVG icon
+                    deleteIcon.alt = "Delete";
+                    deleteIcon.className = "button-icon";   // Optional: reuse your icon styling
+                    deleteIcon.style.width = "24px";        // Adjust as needed
+
+
+
+                    deleteButton.appendChild(deleteIcon);
+
                     deleteButton.addEventListener("click", async (event) => {
                         event.stopPropagation(); // Prevent row expansion when clicking button
                         const projectId = project.id;
@@ -202,8 +214,21 @@
                     // --- Edit Button ---
                     const editButton = document.createElement("button");
                     editButton.className = "btn-edit"; // Assuming you have .btn-edit styling
-                    editButton.textContent = "✏️"; // Icon as per your new design
                     editButton.title = "Edit Project"; // Title for hover
+                    editButton.style.border = "none";        // Adjust as needed
+                    editButton.style.marginRight = "5px";
+                    editButton.style.cursor = "pointer";
+
+
+
+                    // Create and add the image instead of emoji
+                    const editIcon = document.createElement("img");
+                    editIcon.src = "/static/edit.svg";  // Path to your SVG icon
+                    editIcon.alt = "Edit";
+                    editIcon.className = "button-icon";   // Optional: reuse your icon styling
+                    editIcon.style.width = "24px";        // Adjust as needed
+
+                    editButton.appendChild(editIcon);
                     editButton.addEventListener("click", (event) => {
                         event.stopPropagation(); // Prevent row expansion when clicking button
                         alert(`Edit project: ${project.name} (ID: ${project.id})`);
