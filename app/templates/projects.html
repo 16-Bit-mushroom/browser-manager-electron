@@ -21,18 +21,23 @@
                 <h2 class="app-name">Browser Manager</h2>
 
                 <ul class="nav-bar-links">
-                    <li><a id="projects-link" href="/projects.html"><img class="button-icon" src="/static/projects.svg" alt="">Projects</a></li>
-                    <li><a href="/profiles.html"><img class="button-icon" src="/static/profiles.svg" alt="">Profiles</a></li>
-                    <li><a href="/browsers.html"><img class="button-icon" src="/static/browsers.svg" alt="">Browser</a></li>
+                    <li><a id="projects-link" href="/projects.html"><img class="button-icon" src="/static/projects.svg"
+                                alt="">Projects</a></li>
+                    <li><a href="/profiles.html"><img class="button-icon" src="/static/profiles.svg" alt="">Profiles</a>
+                    </li>
+                    <li><a href="/browsers.html"><img class="button-icon" src="/static/browsers.svg" alt="">Browser</a>
+                    </li>
                     <!-- <li><a href="">🕥 History</a></li> -->
-                    <li><a href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg" alt="">Recycle Bin</a></li>
+                    <li><a href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg" alt="">Recycle
+                            Bin</a></li>
                 </ul>
             </div>
 
             <div>
                 <ul class="nav-bar-links">
                     <!-- <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button> -->
-                    <li><a href="/settings.html"><img class="button-icon" src="/static/settings.svg" alt="">Settings</a></li>
+                    <li><a href="/settings.html"><img class="button-icon" src="/static/settings.svg" alt="">Settings</a>
+                    </li>
                     <li><a href="/logout"><img class="button-icon" src="/static/logout.svg" alt="">Sign Out</a></li>
 
                 </ul>
@@ -46,9 +51,8 @@
 
             <div class="content-top-bar-actions">
                 <div class="right">
-                    <button type="button" class="button">
-                        <img class="button-icon" src="/static/add.svg" alt=""></span> <span class="button-text"><a
-                                href="/new-project.html">Add Project</a></span>
+
+                    <a class="button" id="add-project" href="/new-project.html">Add Project</a>
                     </button>
 
                     <button type="button" class="button">
@@ -159,23 +163,20 @@
                     // --- Delete Button ---
                     const deleteButton = document.createElement("button");
                     deleteButton.className = "btn-delete";
+                    deleteButton.textContent = "Delete";
+                    
                     deleteButton.title = "Delete Project";
                     deleteButton.style.marginLeft = "8px";
+                    deleteButton.style.padding = "5px 10px";
                     deleteButton.style.border = "none";
                     deleteButton.style.marginRight = "5px";
                     deleteButton.style.cursor = "pointer";
+                    deleteButton.style.backgroundColor = "#fd01013b";
+                    deleteButton.style.color = "#700303d1";
+                    deleteButton.style.borderRadius = "4px";
+                    deleteButton.style.fontWeight = "500";
 
-
-                    // Create and add the image instead of emoji
-                    const deleteIcon = document.createElement("img");
-                    deleteIcon.src = "/static/delete.svg";  // Path to your SVG icon
-                    deleteIcon.alt = "Delete";
-                    deleteIcon.className = "button-icon";   // Optional: reuse your icon styling
-                    deleteIcon.style.width = "24px";        // Adjust as needed
-
-
-
-                    deleteButton.appendChild(deleteIcon);
+                    
 
                     deleteButton.addEventListener("click", async (event) => {
                         event.stopPropagation(); // Prevent row expansion when clicking button
@@ -215,20 +216,19 @@
                     const editButton = document.createElement("button");
                     editButton.className = "btn-edit"; // Assuming you have .btn-edit styling
                     editButton.title = "Edit Project"; // Title for hover
-                    editButton.style.border = "none";        // Adjust as needed
+                    editButton.textContent = "Edit";
+                    editButton.style.marginLeft = "8px";
+                    editButton.style.padding = "5px 10px";
+                    editButton.style.border = "none";
                     editButton.style.marginRight = "5px";
                     editButton.style.cursor = "pointer";
+                    editButton.style.backgroundColor = "#d7d7d7";
+                    editButton.style.color = "#121111b3";
+                    editButton.style.color = "#121111b3";
+                    editButton.style.fontWeight = "500";
+                    editButton.style.borderRadius = "4px";
+                    
 
-
-
-                    // Create and add the image instead of emoji
-                    const editIcon = document.createElement("img");
-                    editIcon.src = "/static/edit.svg";  // Path to your SVG icon
-                    editIcon.alt = "Edit";
-                    editIcon.className = "button-icon";   // Optional: reuse your icon styling
-                    editIcon.style.width = "24px";        // Adjust as needed
-
-                    editButton.appendChild(editIcon);
                     editButton.addEventListener("click", (event) => {
                         event.stopPropagation(); // Prevent row expansion when clicking button
                         alert(`Edit project: ${project.name} (ID: ${project.id})`);
@@ -342,12 +342,9 @@
                                         <td>${profile.proxy || "None"}</td>
                                         <td>${profile.last_used_formatted}</td>
                                         <td>
-                                            <button class="btn-launch" onclick="launchProfile(${profile.id})">🚀</button>
-                                            <button class="btn-edit" style="margin-left:8px;" onclick="window.location.href = '/edit-profile.html?id=' + ${profile.id}">✏️</button>
-
-                                                                    
-
-                                            <button class="btn-delete" style="margin-left:8px;" onclick="deleteProfile(${profile.id}, '${profile.name}')">🗑️</button>
+                                            <button class="btn-launch" style="color: #00ADB5; border: none; cursor: pointer; background-color: white; font-weight: 600;" onclick="launchProfile(${profile.id})">Launch</button>
+                                            <button class="btn-edit" style="margin-left:8px; border: none; color: #393E46; cursor: pointer; background-color: white; font-weight: 600;" onclick="window.location.href = '/edit-profile.html?id=' + ${profile.id}">Edit</button>
+                                            <button class="btn-delete" style="margin-left:8px; border: none; color: #ff7474; cursor: pointer; background-color: white; font-weight: 600;" onclick="deleteProfile(${profile.id}, '${profile.name}')">Delete</button>
                                         </td>
                                     </tr>
                                 `;

@@ -21,18 +21,23 @@
                 <h2 class="app-name">Browser Manager</h2>
 
                 <ul class="nav-bar-links">
-                    <li><a  href="/projects.html"><img class="button-icon" src="/static/projects.svg" alt="">Projects</a></li>
-                    <li><a id="profiles-link" href="/profiles.html"><img class="button-icon" src="/static/profiles.svg" alt="">Profiles</a></li>
-                    <li><a href="/browsers.html"><img class="button-icon" src="/static/browsers.svg" alt="">Browser</a></li>
+                    <li><a href="/projects.html"><img class="button-icon" src="/static/projects.svg" alt="">Projects</a>
+                    </li>
+                    <li><a id="profiles-link" href="/profiles.html"><img class="button-icon" src="/static/profiles.svg"
+                                alt="">Profiles</a></li>
+                    <li><a href="/browsers.html"><img class="button-icon" src="/static/browsers.svg" alt="">Browser</a>
+                    </li>
                     <!-- <li><a href="">🕥 History</a></li> -->
-                    <li><a href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg" alt="">Recycle Bin</a></li>
+                    <li><a href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg" alt="">Recycle
+                            Bin</a></li>
                 </ul>
             </div>
 
             <div>
                 <ul class="nav-bar-links">
                     <!-- <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button> -->
-                    <li><a href="/settings.html"><img class="button-icon" src="/static/settings.svg" alt="">Settings</a></li>
+                    <li><a href="/settings.html"><img class="button-icon" src="/static/settings.svg" alt="">Settings</a>
+                    </li>
                     <li><a href="/logout"><img class="button-icon" src="/static/logout.svg" alt="">Sign Out</a></li>
 
                 </ul>
@@ -46,11 +51,9 @@
 
             <div class="content-top-bar-actions">
                 <div class="right">
-                    <button type="button" class="button">
-                        <img class="button-icon" src="/static/add.svg" alt=""></span> <span class="button-text"><a
-                                href="/new-profile.html">Add Profile</a></span>
-                    </button>
 
+                    <a class="button" id="add-profile" href="/new-profile.html">Add Profile</a>
+                    
                     <button type="button" class="button">
                         <img class="button-icon" src="static/export-file.svg" alt="upload-file" title="Export Profile">
                     </button>
@@ -139,23 +142,22 @@
 
                     const launchButton = document.createElement("button");
                     launchButton.className = "btn-create"; // Assuming .btn-create style is available
-                    // launchButton.textContent = "Launch";
+                    launchButton.textContent = "Launch";
                     launchButton.title = "Launch";
                     launchButton.dataset.profileId = profile.id;
+
+
+                    launchButton.style.marginLeft = "8px";
+                    launchButton.style.padding = "5px 10px";
                     launchButton.style.border = "none";
                     launchButton.style.marginRight = "5px";
                     launchButton.style.cursor = "pointer";
-
-                    // Create and add the image instead of emoji
-                    const launchIcon = document.createElement("img");
-                    launchIcon.src = "/static/launch.svg";  // Path to your SVG icon
-                    launchIcon.alt = "Launch";
-                    launchIcon.className = "button-icon";   // Optional: reuse your icon styling
-                    launchIcon.style.width = "24px";        // Adjust as needed
+                    launchButton.style.backgroundColor = "#00ADB5";
+                    launchButton.style.color = "#ffffff";
+                    launchButton.style.borderRadius = "4px";
+                    launchButton.style.fontWeight = "500";
 
 
-
-                    launchButton.appendChild(launchIcon);
 
                     launchButton.addEventListener("click", async (event) => {
                         const profileId = event.currentTarget.dataset.profileId; // ✅ FIXED
@@ -198,24 +200,18 @@
                     const deleteButton = document.createElement("button");
                     deleteButton.className = "btn-delete"; // Assuming .btn-delete style is available
                     deleteButton.title = "Delete";
+                    deleteButton.textContent = "Delete";
 
-                    deleteButton.style.marginLeft = "8px"; // Add some spacing
-
+                    deleteButton.style.marginLeft = "8px";
+                    deleteButton.style.padding = "5px 10px";
                     deleteButton.style.border = "none";
                     deleteButton.style.marginRight = "5px";
                     deleteButton.style.cursor = "pointer";
+                    deleteButton.style.backgroundColor = "#fd01013b";
+                    deleteButton.style.color = "#700303d1";
+                    deleteButton.style.borderRadius = "4px";
+                    deleteButton.style.fontWeight = "500";
 
-
-                    // Create and add the image instead of emoji
-                    const deleteIcon = document.createElement("img");
-                    deleteIcon.src = "/static/delete.svg";  // Path to your SVG icon
-                    deleteIcon.alt = "Delete";
-                    deleteIcon.className = "button-icon";   // Optional: reuse your icon styling
-                    deleteIcon.style.width = "24px";        // Adjust as needed
-
-
-
-                    deleteButton.appendChild(deleteIcon);
 
                     deleteButton.addEventListener("click", async () => {
                         const profileId = profile.id;
@@ -253,22 +249,20 @@
 
                     const editButton = document.createElement("button");
                     editButton.className = "edit-delete"; // Assuming .btn-delete style is available
-                    editButton.style.marginLeft = "8px"; // Add some spacing
+                    // editButton.style.marginLeft = "8px"; // Add some spacing
                     editButton.title = "Edit";
 
+                    editButton.textContent = "Edit";
+                    editButton.style.marginLeft = "8px";
+                    editButton.style.padding = "5px 10px";
                     editButton.style.border = "none";
                     editButton.style.marginRight = "5px";
                     editButton.style.cursor = "pointer";
-
-
-                    // Create and add the image instead of emoji
-                    const editIcon = document.createElement("img");
-                    editIcon.src = "/static/edit.svg";  // Path to your SVG icon
-                    editIcon.alt = "Delete";
-                    editIcon.className = "button-icon";   // Optional: reuse your icon styling
-                    editIcon.style.width = "24px";        // Adjust as needed
-
-                    editButton.appendChild(editIcon);
+                    editButton.style.backgroundColor = "#d7d7d7";
+                    editButton.style.color = "#121111b3";
+                    editButton.style.color = "#121111b3";
+                    editButton.style.fontWeight = "500";
+                    editButton.style.borderRadius = "4px";
 
                     editButton.addEventListener("click", () => {
                         const profileId = profile.id;
