@@ -20,14 +20,15 @@
                 <h2 class="app-name">Browser Manager</h2>
 
                 <ul class="nav-bar-links">
-                    <li><a  href="/projects.html"><img class="button-icon" src="/static/projects.svg"
-                                alt="">Projects</a></li>
+                    <li><a href="/projects.html"><img class="button-icon" src="/static/projects.svg" alt="">Projects</a>
+                    </li>
                     <li><a href="/profiles.html"><img class="button-icon" src="/static/profiles.svg" alt="">Profiles</a>
                     </li>
                     <li><a href="/browsers.html"><img class="button-icon" src="/static/browsers.svg" alt="">Browser</a>
                     </li>
                     <!-- <li><a href="">🕥 History</a></li> -->
-                    <li><a id="recycle-link" href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg" alt="">Recycle
+                    <li><a id="recycle-link" href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg"
+                                alt="">Recycle
                             Bin</a></li>
                 </ul>
             </div>
@@ -51,14 +52,15 @@
             <div class="content-top-bar-actions">
                 <div class="right">
                     <button type="button" class="button">
-                        <img class="button-icon" src="/static/restore.svg" alt=""></span> <span class="button-text"><a
-                                href="/new-project.html">Restore selected item</a></span>
+                        <img class="button-icon" src="/static/restore.svg" alt="">
+                        <span class="button-text"><a>Restore selected item</a></span>
                     </button>
 
-                    <button type="button" class="button">
-                        <img class="button-icon" src="/static/delete_forever.svg" alt=""></span> <span
-                            class="button-text"><a href="/new-project.html">Empty recycle-bin </a></span>
+                    <button type="button" class="button" id="empty-recycle-bin">
+                        <img class="button-icon" src="/static/delete_forever.svg" alt="">
+                        <span class="button-text">Empty recycle-bin</span>
                     </button>
+
 
                 </div>
                 <input id="search-bar" type="text" placeholder="Search...">
@@ -94,6 +96,113 @@
 
         </div>
     </div>
+
+    <script>
+
+        // recycle-bin.js (attach to your HTML)
+        document.addEventListener("DOMContentLoaded", loadRecycleBin);
+
+        async function loadRecycleBin() {
+            const tbody = document.getElementById("projects-table-body");
+            const messageDiv = document.getElementById("message");
+
+            try {
+                const [deletedProfiles, deletedProjects] = await Promise.all([
+                    fetch("/api/deleted_profiles").then((res) => res.json()),
+                    fetch("/api/deleted_projects").then((res) => res.json()),
+                ]);
+
+                const allItems = [
+                    ...deletedProfiles.map((item) => ({ ...item, type: "Profile" })),
+                    ...deletedProjects.map((item) => ({ ...item, type: "Project" })),
+                ];
+
+                tbody.innerHTML = "";
+
+                if (allItems.length === 0) {
+                    tbody.innerHTML =
+                        '<tr><td colspan="4" style="text-align:center;">Recycle bin is empty.</td></tr>';
+                    return;
+                }
+
+                allItems.forEach((item) => {
+                    const row = tbody.insertRow();
+
+                    // Checkbox
+                    const checkboxCell = row.insertCell();
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.dataset.id = item.id;
+                    checkbox.dataset.type = item.type.toLowerCase();
+                    checkboxCell.appendChild(checkbox);
+
+                    row.insertCell().textContent = item.name;
+                    row.insertCell().textContent = item.type;
+                    row.insertCell().textContent = item.deleted_at || "Unknown";
+                });
+            } catch (error) {
+                console.error("Error loading recycle bin:", error);
+                messageDiv.textContent = `Failed to load recycle bin: ${error.message}`;
+            }
+        }
+
+        // Restore selected item(s)
+        document.querySelector(".right button").addEventListener("click", async () => {
+            const checkboxes = document.querySelectorAll("input[type='checkbox']:checked");
+
+            for (const checkbox of checkboxes) {
+                const id = checkbox.dataset.id;
+                const type = checkbox.dataset.type;
+                const endpoint = type === "profile"
+                    ? `/api/profiles/restore/${id}`
+                    : `/api/projects/restore/${id}`;
+
+                try {
+                    const response = await fetch(endpoint, { method: "POST" });
+                    const result = await response.json();
+
+                    if (!response.ok) throw new Error(result.message || "Unknown error");
+                    console.log(`${type} restored successfully.`);
+                } catch (e) {
+                    console.error(`Failed to restore ${type} ID ${id}:`, e);
+                }
+            }
+
+            loadRecycleBin(); // Refresh table
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const emptyBinBtn = document.getElementById("empty-recycle-bin");
+
+            emptyBinBtn.addEventListener("click", async () => {
+                if (!confirm("Are you sure you want to permanently delete all items in the recycle bin? This cannot be undone.")) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch("/api/empty_recycle_bin", {
+                        method: "DELETE",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        alert(result.message);
+                        window.location.reload();
+                    } else {
+                        alert(`Error: ${result.message}`);
+                    }
+                } catch (error) {
+                    console.error("Error emptying recycle bin:", error);
+                    alert(`Network or system error: ${error.message}`);
+                }
+            });
+        });
+
+    </script>
 
 </body>
 

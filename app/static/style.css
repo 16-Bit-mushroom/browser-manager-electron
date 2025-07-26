@@ -109,8 +109,10 @@ ul.nav-bar-links img {
 
 .content-header {
     font-weight: 300;
-    margin: 28px 0;
-    margin-bottom: 34px;
+    /* margin: 28px 0; */
+    margin-bottom: 20px;
+    margin-top: 15px;
+    /* margin-left: 10p; */
 }
 
 .content-top-bar-actions {
@@ -119,7 +121,7 @@ ul.nav-bar-links img {
     width: 100%;
     /* margin-bottom: 22px; */
     background-color: white;
-    padding: 10px;
+    padding-block: 12px;
     border-radius: 5px;
 }
 
@@ -224,6 +226,12 @@ ul.nav-bar-links img {
     background-color: #f3f5f7;
 }
 
+
+#search-bar:hover {
+    border: 0.5px solid #cdeced;
+
+}
+
 .header-with-toast-wrapper {
     display: flex;
     justify-content: space-between;
@@ -275,7 +283,7 @@ ul.nav-bar-links img {
     font-weight: 500;
     /* color: #00797e; */
     color: #008187;
-    
+
 
 }
 
@@ -381,7 +389,7 @@ tr.project-row {
     align-items: center;
     gap: 10px;
     margin: 20px;
-    background-color: var(--grey);
+    background-color: #cdeced;
     padding: 14px;
     border-radius: 8px;
 }
@@ -401,13 +409,20 @@ tr.project-row {
 }
 
 .browser-card .browser-delete-icon {
-    padding: 3px;
+    padding: 5px 10px;
+    border-radius: 5px;
     margin-top: 10px;
+    background-color: #fcfcfc3b;
+    color: #00ADB5;
 }
 
-/* .add-browser-icon {
-    width: 48px;
-} */
+.browser-card .browser-delete-icon:hover {
+
+    background-color: #00ADB5;
+    color: white;
+
+}
+
 
 .browser-icon {
     width: 48px;
@@ -423,6 +438,20 @@ tr.project-row {
     background: none;
     border: none;
     cursor: pointer;
+    background: #00ADB5;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.browser-card button:hover {
+    background-color: #009097;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+
+}
+
+.browser-card button:active {
+    background-color: #008188;
 }
 
 

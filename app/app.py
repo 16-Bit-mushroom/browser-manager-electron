@@ -107,7 +107,9 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL UNIQUE,
                 notes TEXT,
-                last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_deleted INTEGER DEFAULT 0,
+                deleted_at TEXT
             )
         ''')
         # Create profiles table
@@ -123,6 +125,8 @@ def init_db():
                 clear_session_on_exit BOOLEAN DEFAULT 0,
                 last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 project_id INTEGER,
+                is_deleted INTEGER DEFAULT 0,
+                deleted_at TEXT,
                 FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
             )
         ''')
@@ -303,6 +307,7 @@ def get_projects():
         SELECT p.id, p.name, p.notes, p.last_used, COUNT(prof.id) AS profile_count
         FROM projects p
         LEFT JOIN profiles prof ON p.id = prof.project_id
+        WHERE p.is_deleted = 0
         GROUP BY p.id
         ORDER BY p.name ASC
     ''').fetchall()
@@ -467,6 +472,7 @@ def get_profiles():
         SELECT prof.*, proj.name AS project_name
         FROM profiles prof
         LEFT JOIN projects proj ON prof.project_id = proj.id
+        WHERE prof.is_deleted = 0
         ORDER BY prof.last_used DESC
     ''').fetchall()
     profiles_list = []
@@ -672,79 +678,213 @@ def delete_profile(profile_id):
     cursor = db.cursor()
 
     try:
-        # 1. Get the profile's folder path before deleting from DB
-        profile = cursor.execute('SELECT folder FROM profiles WHERE id = ?', (profile_id,)).fetchone()
+        # Only select if not already deleted
+        profile = cursor.execute(
+            'SELECT folder FROM profiles WHERE id = ? AND is_deleted = 0',
+            (profile_id,)
+        ).fetchone()
 
         if not profile:
-            app.logger.warning(f"Attempted to delete non-existent profile with ID: {profile_id}")
-            return jsonify({"status": "error", "message": "Profile not found."}), 404
+            app.logger.warning(f"Attempted to delete non-existent or already deleted profile with ID: {profile_id}")
+            return jsonify({"status": "error", "message": "Profile not found or already deleted."}), 404
 
         profile_folder_path = profile['folder']
 
-        # 2. Delete the profile from the database
-        cursor.execute('DELETE FROM profiles WHERE id = ?', (profile_id,))
+        # Soft delete
+        cursor.execute('''
+            UPDATE profiles SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (profile_id,))
         db.commit()
-        app.logger.info(f"Profile ID {profile_id} deleted from database.")
 
-        # 3. Delete the associated profile folder from the file system
-        if os.path.exists(profile_folder_path) and os.path.isdir(profile_folder_path):
-            try:
-                shutil.rmtree(profile_folder_path) # Use rmtree to remove non-empty directories
-                app.logger.info(f"Profile folder deleted: {profile_folder_path}")
-            except OSError as e:
-                app.logger.error(f"Error deleting profile folder {profile_folder_path}: {e}", exc_info=True)
-                # Even if folder deletion fails, we report DB deletion success
-                return jsonify({"status": "success", "message": "Profile deleted from database, but folder cleanup failed. Check logs."}), 200
-        else:
-            app.logger.warning(f"Profile folder not found for ID {profile_id}: {profile_folder_path}. Skipping file system cleanup.")
+        app.logger.info(f"Profile ID {profile_id} moved to recycle bin.")
 
-        return jsonify({"status": "success", "message": "Profile deleted successfully."}), 200
+        # (Optional) Log folder path for reference — not deleting here
+        if profile_folder_path:
+            app.logger.info(f"Profile folder recorded: {profile_folder_path}")
+
+        return jsonify({"status": "success", "message": "Profile moved to recycle bin."}), 200
 
     except Exception as e:
         db.rollback()
         app.logger.error(f"Error deleting profile {profile_id}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": f"Failed to delete profile: {str(e)}"}), 500
+    
+
+@app.route('/api/deleted_profiles', methods=['GET'])
+# @login_required
+def get_deleted_profiles():
+    db = get_db()
+    rows = db.execute('''
+        SELECT id, name, deleted_at 
+        FROM profiles 
+        WHERE is_deleted = 1
+        ORDER BY deleted_at DESC
+    ''').fetchall()
+    return jsonify([dict(row) for row in rows]), 200
+
+
+
+@app.route('/api/profiles/restore/<int:profile_id>', methods=['POST'])
+def restore_profile(profile_id):
+    db = get_db()
+    cursor = db.cursor()
+
+    try:
+        # Check if profile is soft-deleted
+        profile = cursor.execute(
+            'SELECT id FROM profiles WHERE id = ? AND is_deleted = 1',
+            (profile_id,)
+        ).fetchone()
+
+        if not profile:
+            return jsonify({"status": "error", "message": "Profile not found or is not deleted."}), 404
+
+        # Restore the profile
+        cursor.execute(
+            '''
+            UPDATE profiles
+            SET is_deleted = 0, deleted_at = NULL
+            WHERE id = ?
+            ''',
+            (profile_id,)
+        )
+        db.commit()
+
+        app.logger.info(f"Profile ID {profile_id} restored from recycle bin.")
+        return jsonify({"status": "success", "message": "Profile restored successfully."}), 200
+
+    except Exception as e:
+        db.rollback()
+        app.logger.error(f"Error restoring profile {profile_id}: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": f"Failed to restore profile: {str(e)}"}), 500
+
 
 @app.route('/api/projects/<int:project_id>', methods=['DELETE'])
+# @login_required
 def delete_project(project_id):
     db = get_db()
     cursor = db.cursor()
 
     try:
-        # 1. Get all profiles associated with this project to delete their folders
-        associated_profiles = cursor.execute('SELECT id, folder FROM profiles WHERE project_id = ?', (project_id,)).fetchall()
+        # 1. Get project to verify existence
+        project = cursor.execute('SELECT id FROM projects WHERE id = ?', (project_id,)).fetchone()
 
-        # 2. Delete associated profile folders from the file system
-        for profile in associated_profiles:
-            profile_folder_path = profile['folder']
-            if os.path.exists(profile_folder_path) and os.path.isdir(profile_folder_path):
-                try:
-                    shutil.rmtree(profile_folder_path)
-                    app.logger.info(f"Deleted associated profile folder: {profile_folder_path} for project {project_id}")
-                except OSError as e:
-                    app.logger.error(f"Error deleting associated profile folder {profile_folder_path} for project {project_id}: {e}", exc_info=True)
-                    # Continue with DB deletion even if folder deletion fails for one profile
-            else:
-                app.logger.warning(f"Associated profile folder not found: {profile_folder_path} for project {project_id}. Skipping file system cleanup.")
+        if not project:
+            app.logger.warning(f"Attempted to delete non-existent project with ID: {project_id}")
+            return jsonify({"status": "error", "message": "Project not found."}), 404
 
-        # 3. Delete profiles associated with this project from the database
-        # ON DELETE SET NULL on the FK means profiles will have project_id set to NULL if project is deleted.
-        # If you want to CASCADE DELETE, you'd change the FK definition in init_db().
-        # For now, let's explicitly delete them to ensure clean removal.
-        cursor.execute('DELETE FROM profiles WHERE project_id = ?', (project_id,))
-        app.logger.info(f"Deleted profiles associated with project ID {project_id} from database.")
+        # 2. Soft-delete the project
+        cursor.execute('''
+            UPDATE projects
+            SET is_deleted = 1,
+                deleted_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (project_id,))
 
+        # 3. Soft-delete all associated profiles
+        cursor.execute('''
+            UPDATE profiles
+            SET is_deleted = 1,
+                deleted_at = CURRENT_TIMESTAMP
+            WHERE project_id = ?
+        ''', (project_id,))
 
-        # 4. Delete the project itself from the database
-        cursor.execute('DELETE FROM projects WHERE id = ?', (project_id,))
         db.commit()
-        app.logger.info(f"Project ID {project_id} deleted from database.")
-        return jsonify({"status": "success", "message": "Project and associated profiles deleted successfully."}), 200
+        app.logger.info(f"Project ID {project_id} and associated profiles soft-deleted (moved to recycle bin).")
+        return jsonify({"status": "success", "message": "Project moved to recycle bin."}), 200
 
     except Exception as e:
         db.rollback()
         app.logger.error(f"Error deleting project {project_id}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": f"Failed to delete project: {str(e)}"}), 500
+
+    
+
+@app.route('/api/deleted_projects', methods=['GET'])
+# @login_required
+def get_deleted_projects():
+    db = get_db()
+    rows = db.execute('''
+        SELECT id, name, deleted_at 
+        FROM projects 
+        WHERE is_deleted = 1
+        ORDER BY deleted_at DESC
+    ''').fetchall()
+    return jsonify([dict(row) for row in rows]), 200
+
+@app.route('/api/projects/restore/<int:project_id>', methods=['POST'])
+def restore_project(project_id):
+    db = get_db()
+    cursor = db.cursor()
+
+    try:
+        project = cursor.execute(
+            'SELECT id FROM projects WHERE id = ? AND is_deleted = 1',
+            (project_id,)
+        ).fetchone()
+
+        if not project:
+            return jsonify({"status": "error", "message": "Project not found or already restored."}), 404
+
+        cursor.execute('''
+            UPDATE projects
+            SET is_deleted = 0,
+                deleted_at = NULL
+            WHERE id = ?
+        ''', (project_id,))
+
+        cursor.execute('''
+            UPDATE profiles
+            SET is_deleted = 0,
+                deleted_at = NULL
+            WHERE project_id = ?
+        ''', (project_id,))
+
+        db.commit()
+
+        return jsonify({"status": "success", "message": "Project and associated profiles restored."}), 200
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+
+@app.route('/api/empty_recycle_bin', methods=['DELETE'])
+# @login_required
+def empty_recycle_bin():
+    db = get_db()
+    cursor = db.cursor()
+
+    try:
+        # 1. Delete profile folders for profiles marked is_deleted
+        deleted_profiles = cursor.execute('SELECT folder FROM profiles WHERE is_deleted = 1').fetchall()
+        for profile in deleted_profiles:
+            folder_path = profile['folder']
+            if folder_path and os.path.exists(folder_path) and os.path.isdir(folder_path):
+                try:
+                    shutil.rmtree(folder_path)
+                    app.logger.info(f"Deleted folder: {folder_path}")
+                except Exception as e:
+                    app.logger.error(f"Failed to delete folder {folder_path}: {e}", exc_info=True)
+
+        # 2. Delete profiles from DB
+        cursor.execute('DELETE FROM profiles WHERE is_deleted = 1')
+
+        # 3. Delete projects from DB
+        cursor.execute('DELETE FROM projects WHERE is_deleted = 1')
+
+        db.commit()
+        app.logger.info("Recycle bin emptied: Deleted all soft-deleted projects and profiles.")
+        return jsonify({"status": "success", "message": "Recycle bin emptied successfully."}), 200
+
+    except Exception as e:
+        db.rollback()
+        app.logger.error(f"Error emptying recycle bin: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": f"Failed to empty recycle bin: {str(e)}"}), 500
+
+
 
 @app.route('/api/available_browsers', methods=['GET'])
 def get_available_browsers():
