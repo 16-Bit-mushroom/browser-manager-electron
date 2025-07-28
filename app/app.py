@@ -1,7 +1,8 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request, redirect, url_for, g, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, g, jsonify, session, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from functools import wraps
 import datetime
 import subprocess
@@ -14,6 +15,8 @@ import zipfile
 import requests
 import hashlib
 import json
+import zipfile
+import tempfile
 
 # --- Add Argument Parsing ---
 parser = argparse.ArgumentParser(description='Flask Backend for Browser Manager.')
@@ -1012,6 +1015,119 @@ def uninstall_browser():
         return jsonify({"success": True, "message": f"{browserFolder} uninstalled"})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+    
+
+
+
+
+@app.route('/export_full_backup', methods=['GET'])
+def export_full_backup():
+    try:
+        # Get database path from config
+        db_path = app.config['DATABASE']
+
+        if not os.path.exists(db_path):
+            return jsonify({"status": "error", "message": "Database file not found."}), 404
+
+        # Create a temporary zip file
+        temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
+        zip_path = temp_zip.name
+
+        with zipfile.ZipFile(zip_path, 'w') as zipf:
+            # Add the database
+            zipf.write(db_path, arcname='profiles.db')
+
+            # Add the profiles folder and subfolders
+            profiles_dir = os.path.join(app.root_path, 'profiles')
+            if os.path.exists(profiles_dir):
+                for root, dirs, files in os.walk(profiles_dir):
+                    for file in files:
+                        abs_path = os.path.join(root, file)
+                        rel_path = os.path.relpath(abs_path, app.root_path)
+                        zipf.write(abs_path, arcname=rel_path)
+
+        return send_file(zip_path, as_attachment=True, download_name="browser_manager_backup.zip")
+
+    except Exception as e:
+        app.logger.error(f"Error exporting full backup: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": f"Export failed: {str(e)}"}), 500
+
+
+# ------------------------------
+# ✅ 1. API: Check if DB is empty
+# ------------------------------
+@app.route('/api/check_db_empty', methods=['GET'])
+def check_db_empty():
+    db = get_db()
+    project_count = db.execute('SELECT COUNT(*) FROM projects').fetchone()[0]
+    profile_count = db.execute('SELECT COUNT(*) FROM profiles').fetchone()[0]
+    is_empty = (project_count == 0 and profile_count == 0)
+    return jsonify({"isEmpty": is_empty})
+
+
+
+import zipfile
+import tempfile
+
+@app.route('/import_db', methods=['POST'])
+def import_db():
+    if 'db_file' not in request.files:
+        return jsonify({"status": "error", "message": "No file part in the request."}), 400
+
+    file = request.files['db_file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No file selected."}), 400
+
+    if file and file.filename.endswith('.zip'):
+        try:
+            # Create temp directory to extract zip
+            temp_dir = tempfile.mkdtemp()
+            zip_path = os.path.join(temp_dir, secure_filename(file.filename))
+            file.save(zip_path)
+
+            # Extract contents
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
+
+            # --- Restore DB ---
+            db_path = app.config['DATABASE']
+            extracted_db = os.path.join(temp_dir, 'profiles.db')
+            if not os.path.exists(extracted_db):
+                return jsonify({"status": "error", "message": "Backup does not contain profiles.db"}), 400
+
+            if os.path.exists(db_path):
+                backup_path = db_path + ".bak"
+                shutil.copy2(db_path, backup_path)
+                app.logger.info(f"Backed up existing DB to {backup_path}")
+
+            shutil.copy2(extracted_db, db_path)
+            app.logger.info("Restored database from backup.")
+
+            # --- Restore Profiles Folder ---
+            extracted_profiles_dir = os.path.join(temp_dir, 'profiles')
+            profiles_dir = app.config['PROFILES_DIR']
+
+            if os.path.exists(extracted_profiles_dir):
+                if os.path.exists(profiles_dir):
+                    shutil.rmtree(profiles_dir)
+                    app.logger.info("Deleted old profiles directory.")
+                shutil.copytree(extracted_profiles_dir, profiles_dir)
+                app.logger.info("Restored profiles directory from backup.")
+
+            return jsonify({"status": "success", "message": "Backup imported successfully."}), 200
+
+        except Exception as e:
+            app.logger.error(f"Import failed: {e}", exc_info=True)
+            return jsonify({"status": "error", "message": f"Import failed: {str(e)}"}), 500
+
+    return jsonify({"status": "error", "message": "Invalid file format. Please upload a .zip backup."}), 400
+
+
+
+ 
+
+
+
 
 
 # --- MODIFIED Flask RUN block at the end of app.py ---

@@ -55,13 +55,17 @@
                     <a class="button" id="add-project" href="/new-project.html">Add Project</a>
                     </button>
 
-                    <button type="button" class="button">
-                        <img class="button-icon" src="/static/file_save.svg" alt="upload-file" title="Export Profile">
+                    <button type="button" class="button" id="export-backup-button" title="Export Full Backup">
+                        <img class="button-icon" src="/static/file_save.svg" alt="Export Backup">
                     </button>
 
-                    <button type="button" class="button">
-                        <img class="button-icon" src="/static/upload_file.svg" alt="upload-file" title="Import Profile">
-                    </button>
+
+                    <!-- Import button -->
+                    <label class="button" for="import-db-input">
+                        <img class="button-icon" src="/static/upload_file.svg" alt="Import DB" title="Import Profile">
+                    </label>
+                    <input id="import-db-input" type="file" accept=".db" style="display: none;" />
+
 
                 </div>
                 <input id="search-bar" type="text" placeholder="Search profiles, projects, or notes...">
@@ -164,7 +168,7 @@
                     const deleteButton = document.createElement("button");
                     deleteButton.className = "btn-delete";
                     deleteButton.textContent = "Delete";
-                    
+
                     deleteButton.title = "Delete Project";
                     deleteButton.style.marginLeft = "8px";
                     deleteButton.style.padding = "5px 10px";
@@ -176,7 +180,7 @@
                     deleteButton.style.borderRadius = "4px";
                     deleteButton.style.fontWeight = "500";
 
-                    
+
 
                     deleteButton.addEventListener("click", async (event) => {
                         event.stopPropagation(); // Prevent row expansion when clicking button
@@ -227,7 +231,7 @@
                     editButton.style.color = "#121111b3";
                     editButton.style.fontWeight = "500";
                     editButton.style.borderRadius = "4px";
-                    
+
 
                     editButton.addEventListener("click", (event) => {
                         event.stopPropagation(); // Prevent row expansion when clicking button
@@ -448,6 +452,54 @@
                 }
             });
         });
+
+        document.getElementById("export-backup-button").addEventListener("click", () => {
+            window.location.href = "/export_full_backup"; // Triggers file download
+        });
+
+        document.getElementById("import-db-input").addEventListener("change", async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // 1. Check if current database is empty
+            const checkRes = await fetch('/api/check_db_empty');
+            const { empty } = await checkRes.json();
+
+            if (!empty) {
+                const confirmed = confirm(
+                    "Your current data will be replaced by the imported database.\n" +
+                    "Please back up first if you haven’t already.\n\nContinue with import?"
+                );
+                if (!confirmed) return;
+            }
+
+            // 2. Proceed with import
+            const formData = new FormData();
+            formData.append("db_file", file);
+
+            try {
+                const res = await fetch("/import_db", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert(result.message || "Import successful. Reloading app...");
+                    location.reload();
+                } else {
+                    alert(result.message || "Import failed.");
+                }
+            } catch (err) {
+                console.error("Import error:", err);
+                alert("An error occurred during import.");
+            }
+        });
+
+
+
+
 
 
     </script>
