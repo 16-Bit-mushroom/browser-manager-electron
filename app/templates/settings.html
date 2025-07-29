@@ -20,8 +20,8 @@
                 <h2 class="app-name">Browser Manager</h2>
 
                 <ul class="nav-bar-links">
-                    <li><a href="/projects.html"><img class="button-icon" src="/static/projects.svg"
-                                alt="">Projects</a></li>
+                    <li><a href="/projects.html"><img class="button-icon" src="/static/projects.svg" alt="">Projects</a>
+                    </li>
                     <li><a href="/profiles.html"><img class="button-icon" src="/static/profiles.svg" alt="">Profiles</a>
                     </li>
                     <li><a href="/browsers.html"><img class="button-icon" src="/static/browsers.svg" alt="">Browser</a>
@@ -35,7 +35,8 @@
             <div>
                 <ul class="nav-bar-links">
                     <!-- <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button> -->
-                    <li><a id="settings-link" href="/settings.html"><img class="button-icon" src="/static/settings.svg" alt="">Settings</a>
+                    <li><a id="settings-link" href="/settings.html"><img class="button-icon" src="/static/settings.svg"
+                                alt="">Settings</a>
                     </li>
                     <li><a href="/logout"><img class="button-icon" src="/static/logout.svg" alt="">Sign Out</a></li>
 
@@ -75,6 +76,45 @@
 
             </div>
         </div>
+
+        <script>
+
+            window.addEventListener('DOMContentLoaded', async () => {
+                const res = await fetch('/api/current_user');
+                const data = await res.json();
+                document.getElementById('user-name').value = data.username || '';
+            });
+
+            document.getElementById('new-profile-form').addEventListener('submit', async function (event) {
+                event.preventDefault();
+
+                const username = document.getElementById('user-name').value.trim();
+                const password = document.getElementById('password').value.trim();
+
+                try {
+                    const res = await fetch('/api/update_user', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    const result = await res.json();
+
+                    if (res.ok) {
+                        alert(result.message);
+                        document.getElementById('password').value = '';  // Clear password field
+                    } else {
+                        alert(result.error || 'Update failed');
+                    }
+                } catch (err) {
+                    console.error('Error updating user:', err);
+                    alert('An error occurred while updating credentials.');
+                }
+            });
+        </script>
+
 
 </body>
 

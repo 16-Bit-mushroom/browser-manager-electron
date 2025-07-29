@@ -84,7 +84,7 @@
             </div>
 
 
-            <div>
+            <div class="table-wrapper">
 
                 <table class="content-table">
                     <thead>
@@ -147,6 +147,11 @@
                     checkbox.type = "checkbox";
                     checkbox.name = "select-project";
                     checkbox.dataset.projectId = project.id;
+
+                    // ✅ Prevent row click when checkbox is clicked
+                    checkbox.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                    });
                     checkboxCell.appendChild(checkbox);
 
                     const nameCell = projectRow.insertCell(1);
@@ -200,7 +205,7 @@
                                 const result = await response.json();
 
                                 if (response.ok) {
-                                    alert(result.message);
+                                    // alert(result.message);
                                     loadProjects(); // Reload projects to update the table
                                 } else {
                                     alert(

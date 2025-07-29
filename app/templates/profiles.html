@@ -53,7 +53,7 @@
                 <div class="right">
 
                     <a class="button" id="add-profile" href="/new-profile.html">Add Profile</a>
-                    
+
                     <!-- <button type="button" class="button">
                         <img class="button-icon" src="static/export-file.svg" alt="upload-file" title="Export Profile">
                     </button>
@@ -81,7 +81,7 @@
             </div>
 
 
-            <div>
+            <div class="table-wrapper">
                 <table class="content-table">
                     <thead>
                         <tr>
@@ -219,7 +219,7 @@
 
                         if (
                             confirm(
-                                `Are you sure you want to delete profile: ${profileName}? This action cannot be undone.`
+                                `Are you sure you want to delete profile: ${profileName}? Profile will be moved to Recycle bin.`
                             )
                         ) {
                             try {
@@ -230,7 +230,7 @@
                                 const result = await response.json();
 
                                 if (response.ok) {
-                                    alert(result.message);
+                                    // alert(result.message);
                                     loadProfiles(); // Reload profiles to update the table
                                 } else {
                                     alert(

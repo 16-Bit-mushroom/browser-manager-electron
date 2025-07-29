@@ -63,7 +63,7 @@
 
 
                 </div>
-                <input id="search-bar" type="text" placeholder="Search...">
+                <!-- <input id="search-bar" type="text" placeholder="Search..."> -->
 
                 <div class="left">
 
@@ -77,7 +77,7 @@
             </div>
 
 
-            <div>
+            <div class="table-wrapper">
 
                 <table class="content-table">
                     <thead>
@@ -134,6 +134,7 @@
                     checkbox.type = "checkbox";
                     checkbox.dataset.id = item.id;
                     checkbox.dataset.type = item.type.toLowerCase();
+                    
                     checkboxCell.appendChild(checkbox);
 
                     row.insertCell().textContent = item.name;

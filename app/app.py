@@ -253,6 +253,38 @@ def logout():
 
 # --- API Endpoints ---
 
+@app.route('/api/current_user')
+def current_user():
+    db = get_db()
+    user = db.execute('SELECT username FROM users WHERE id = 1').fetchone()
+    return jsonify({'username': user['username']}), 200
+
+
+@app.route('/api/update_user', methods=['POST'])
+def update_user():
+    db = get_db()
+    data = request.json
+    new_username = data.get('username')
+    new_password = data.get('password')
+
+    if not new_username:
+        return jsonify({'error': 'Username is required'}), 400
+
+    # Optional: prevent duplicate usernames
+    existing = db.execute('SELECT id FROM users WHERE username = ? AND id != 1', (new_username,)).fetchone()
+    if existing:
+        return jsonify({'error': 'Username already taken'}), 409
+
+    if new_password:
+        hashed_password = generate_password_hash(new_password)
+        db.execute('UPDATE users SET username = ?, password_hash = ? WHERE id = 1', (new_username, hashed_password))
+    else:
+        db.execute('UPDATE users SET username = ? WHERE id = 1', (new_username,))
+    
+    db.commit()
+    return jsonify({'message': 'User credentials updated successfully'}), 200
+
+
 @app.route('/login', methods=['POST'])
 def login():
     if not request.is_json:
@@ -306,14 +338,14 @@ def get_projects():
     """API endpoint to get a list of all projects with profile counts."""
     db = get_db()
     # Modified query to include profile_count and use GROUP BY
-    projects = db.execute('''
-        SELECT p.id, p.name, p.notes, p.last_used, COUNT(prof.id) AS profile_count
-        FROM projects p
-        LEFT JOIN profiles prof ON p.id = prof.project_id
-        WHERE p.is_deleted = 0
-        GROUP BY p.id
-        ORDER BY p.name ASC
-    ''').fetchall()
+    projects = db.execute('''SELECT p.id, p.name, p.notes, p.last_used, COUNT(prof.id) AS profile_count
+                          FROM projects p
+                          LEFT JOIN profiles prof 
+                          ON p.id = prof.project_id AND prof.is_deleted = 0
+                          WHERE p.is_deleted = 0
+                          GROUP BY p.id
+                          ORDER BY p.name ASC
+                          ''').fetchall()
     projects_list = []
     for row in projects:
         project_dict = dict(row)
@@ -536,7 +568,7 @@ def get_profiles_by_project(project_id):
         SELECT prof.*, proj.name AS project_name
         FROM profiles prof
         LEFT JOIN projects proj ON prof.project_id = proj.id
-        WHERE prof.project_id = ?
+        WHERE prof.project_id = ? AND prof.is_deleted = 0
         ORDER BY prof.name ASC
     ''', (project_id,)).fetchall()
 
@@ -545,10 +577,8 @@ def get_profiles_by_project(project_id):
         profile_dict = dict(row)
         if profile_dict['last_used']:
             try:
-                # Try parsing with microseconds first (for newer entries)
                 dt_object = datetime.datetime.strptime(profile_dict['last_used'], '%Y-%m-%d %H:%M:%S.%f')
             except ValueError:
-                # If that fails, try parsing without microseconds (for older entries)
                 dt_object = datetime.datetime.strptime(profile_dict['last_used'], '%Y-%m-%d %H:%M:%S')
             profile_dict['last_used_formatted'] = dt_object.strftime('%B %d, %Y %I:%M %p')
         else:
@@ -558,6 +588,7 @@ def get_profiles_by_project(project_id):
 
         profiles_list.append(profile_dict)
     return jsonify(profiles_list), 200
+
 
 
 @app.route('/api/launch_profile/<int:profile_id>', methods=['POST'])

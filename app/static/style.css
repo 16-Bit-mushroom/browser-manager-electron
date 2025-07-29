@@ -27,6 +27,11 @@ tr {
     background-color: white;
 }
 
+input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
 .main-container {
     /* border: yellow 1px solid; */
     height: 768px;
@@ -263,8 +268,16 @@ ul.nav-bar-links img {
     border-radius: 15px;
 }
 
+
+.table-wrapper {
+    overflow-y: auto;
+    width: 100%;
+    /* max-width: 100%; */
+}
+
+
 .content-table {
-    min-width: 1045px;
+    max-width: 1045px;
     width: 100%;
     border-collapse: collapse;
     border-radius: 8px;
@@ -418,8 +431,8 @@ tr.project-row {
 
 .browser-card .browser-delete-icon:hover {
 
-    background-color: #00ADB5;
-    color: white;
+    background-color: #fd01013b;
+    color: #700303d1;
 
 }
 
@@ -583,7 +596,7 @@ div#downloading-browser h5 {
 .content-card-container {
     display: flex;
     /* Changed to flex for side-by-side sections */
-    min-width: 1045px;
+    max-width: 1045px;
     width: 100%;
     border-radius: 8px;
     /* margin: 22px 0; */
