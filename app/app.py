@@ -155,9 +155,9 @@ def create_default_admin():
         db.execute('INSERT INTO users (username, password_hash) VALUES (?, ?)', 
                    ('admin', password_hash))
         db.commit()
-        print("✅ Default admin created: admin / admin123")
+        print("Default admin created: admin / admin123")
     else:
-        print("ℹ️ Default admin already exists.")
+        print("Default admin already exists.")
 
 
 # Call init_db when the application starts

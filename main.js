@@ -11,8 +11,9 @@ let flaskReady = false; // New flag to track Flask readiness state
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 1000,
-        height: 700,
+        width: 1366,
+        height: 768,
+        useContentSize: true, // This is the key change
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -54,7 +55,7 @@ function createWindow() {
             }
         }
 
-        
+
         flaskProcess = spawn(flaskExecutablePath, ['--user-data-path', userDataPath]);
 
         // Function to check if Flask is ready from any output stream

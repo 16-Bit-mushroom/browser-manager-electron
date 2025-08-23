@@ -1,79 +1,47 @@
 {
-  "name": "browser-manager-electron",
+  "name": "browser-manager",
   "version": "1.0.0",
-  "description": "An Electron app to manage browser profiles.",
+  "description": "A desktop browser profile manager built with Electron and Flask.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder"
   },
-  "keywords": [],
-  "author": "Chris Cyrel Estil",
-  "license": "ISC",
   "devDependencies": {
-    "electron": "^29.0.0",
-    "electron-builder": "^24.13.3"
+    "electron": "^28.2.2",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "find-free-ports": "^1.2.2"
   },
   "build": {
-    "appId": "com.yourcompany.browsermanager",
+    "appId": "com.yourname.browsermanager",
     "productName": "Browser Manager",
     "copyright": "Copyright © 2025 ${author}",
     "directories": {
-      "output": "release"
+      "output": "dist",
+      "buildResources": "build"
     },
     "files": [
-      "main.js",
-      "index.html",
-      "package.json",
-      "node_modules"
+      "**/*",
+      "!dist/**/*",
+      "!node_modules/**/*"
     ],
+    "asar": true,
     "extraFiles": [
       {
-        "from": "app/data/browser_binaries",
-        "to": "data/browser_binaries",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "app/data/profiles",
-        "to": "data/profiles",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "app/data/profiles.db",
-        "to": "data/profiles.db",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "app/dist/browser_manager_flask_app/browser_manager_flask_app.exe",
+        "from": "app/dist/browser_manager_flask_app.exe",
         "to": "resources/app-backend/browser_manager_flask_app.exe"
       }
     ],
-    "mac": {
-      "icon": "build/icon.icns",
-      "target": [
-        "dmg",
-        "zip"
-      ]
-    },
     "win": {
-      "icon": "build/icon.ico",
-      "target": [
-        "nsis",
-        "zip"
-      ]
+      "target": "nsis"
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools"
     },
     "linux": {
-      "icon": "build/icon.png",
-      "target": [
-        "AppImage",
-        "deb"
-      ]
+      "target": "AppImage"
     }
   }
 }
