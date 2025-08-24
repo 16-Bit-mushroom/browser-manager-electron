@@ -17,6 +17,8 @@ import hashlib
 import json
 import zipfile
 import tempfile
+import tarfile
+import bz2
 
 # --- Add Argument Parsing ---
 parser = argparse.ArgumentParser(description='Flask Backend for Browser Manager.')
@@ -74,7 +76,12 @@ MUTABLE_USER_DATA_PATH, READ_ONLY_RESOURCES_PATH = get_application_paths()
 
 # Configure Flask app with these paths
 app.config['DATABASE'] = os.path.join(MUTABLE_USER_DATA_PATH, 'profiles.db')
-app.config['BROWSER_BINARIES_DIR'] = os.path.join(READ_ONLY_RESOURCES_PATH, 'browser_binaries') # This is the key change!
+# app.config['BROWSER_BINARIES_DIR'] = os.path.join(READ_ONLY_RESOURCES_PATH, 'browser_binaries') # This is the key change!
+app.config['BROWSER_BINARIES_DIR'] = os.path.join(
+    os.path.dirname(__file__), "data", "browser_binaries"
+)
+os.makedirs(app.config['BROWSER_BINARIES_DIR'], exist_ok=True)
+
 app.config['PROFILES_DIR'] = os.path.join(MUTABLE_USER_DATA_PATH, 'profiles')
 
 # Ensure only the MUTABLE directories exist.
@@ -944,19 +951,6 @@ def get_available_browsers():
 
     return jsonify(response), 200
 
-
-# @app.route('/api/open_browser_folder', methods=['POST'])
-# def open_browser_folder():
-#     try:
-#         if platform.system() == 'Windows':
-#             os.startfile(folder_path)
-#         elif platform.system() == 'Darwin':  # macOS
-#             subprocess.Popen(['open', folder_path])
-#         else:  # Linux
-#             subprocess.Popen(['xdg-open', folder_path])
-#         return jsonify({"message": "Folder opened"}), 200
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/open_browser_folder', methods=['POST'])

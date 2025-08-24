@@ -4,7 +4,7 @@
     "version": "123.0.6311.99",
     "download_url": "https://portableapps.com/downloading/?a=GoogleChromePortable&s=s&p=&d=pa&n=Google%20Chrome%20Portable&f=GoogleChromePortable_138.0.7204.158_online.paf.exe",
     "icon": "/static/chrome.png",
-    "folder_name": "app/data/browser_binaries/GoogleChromePortable"
+    "folder_name": "GoogleChromePortable"
   },
   "firefox": {
     "name": "Mozilla Firefox Portable",
