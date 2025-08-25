@@ -1153,17 +1153,17 @@ def import_db():
 
 
 
-
-
-# --- MODIFIED Flask RUN block at the end of app.py ---
 if __name__ == '__main__':
-    # Get port from environment variable set by Electron, default to 5000
+    # Get port from environment variable, default to 5000
     port = int(os.environ.get('FLASK_APP_PORT', 5000))
-    
+
     # Disable Flask's reloader in production (packaged) environments
     debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1'
     use_reloader = debug_mode and not getattr(sys, 'frozen', False)
 
-    print(f"Flask app starting on port {port}, debug={debug_mode}, reloader={use_reloader}")
-    
+    # Open system default browser
+    url = f"http://127.0.0.1:{port}"
+    print(f"Flask app starting on {url}, debug={debug_mode}, reloader={use_reloader}")
+    webbrowser.open(url)
+
     app.run(host='127.0.0.1', port=port, debug=debug_mode, use_reloader=use_reloader)
