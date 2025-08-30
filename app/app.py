@@ -19,6 +19,7 @@ import zipfile
 import tempfile
 import tarfile
 import bz2
+import atexit
 
 # --- Add Argument Parsing ---
 parser = argparse.ArgumentParser(description='Flask Backend for Browser Manager.')
@@ -254,7 +255,10 @@ def settings_page():
 
 @app.route('/logout')
 def logout():
+    # --- Backup profiles before logging out ---
+    bulk_backup_profiles()
     session.clear()  # Wipe all session data
+    print("[Logout] User logged out, profiles backed up")
     return redirect(url_for('index'))
 
 
@@ -1148,8 +1152,142 @@ def import_db():
     return jsonify({"status": "error", "message": "Invalid file format. Please upload a .zip backup."}), 400
 
 
+def bulk_backup_profiles():
+    """
+    Copies only important files from user_data_dev/profiles into data_fallback/profiles
+    """
+    mutable_user_data_base_path, _ = get_application_paths()
+    profiles_dir = os.path.join(mutable_user_data_base_path, "profiles")
+    fallback_profiles_dir = os.path.join(os.path.dirname(mutable_user_data_base_path), "data_fallback", "profiles")
 
- 
+    os.makedirs(fallback_profiles_dir, exist_ok=True)
+
+    important_files = [
+        "cookies.sqlite",
+        "places.sqlite",      # bookmarks + history
+        "logins.json",        # saved passwords
+        "key4.db",            # password encryption key
+        "prefs.js"            # settings
+        "favicons.sqlite"     # bookmark icons
+    ]
+
+    # Walk through each browser → profile
+    for browser in os.listdir(profiles_dir):
+        browser_dir = os.path.join(profiles_dir, browser)
+        if not os.path.isdir(browser_dir):
+            continue
+
+        for profile in os.listdir(browser_dir):
+            profile_dir = os.path.join(browser_dir, profile)
+            if not os.path.isdir(profile_dir):
+                continue
+
+            fallback_profile_dir = os.path.join(fallback_profiles_dir, browser, profile)
+            os.makedirs(fallback_profile_dir, exist_ok=True)
+
+            for fname in important_files:
+                src = os.path.join(profile_dir, fname)
+                dst = os.path.join(fallback_profile_dir, fname)
+                if os.path.exists(src):
+                    try:
+                        shutil.copy2(src, dst)
+                        print(f"[Backup] {browser}/{profile} → {fname}")
+                    except Exception as e:
+                        print(f"[Error] Could not backup {fname} from {browser}/{profile}: {e}")
+                        
+
+
+def normalize_profile_name(name: str) -> str:
+    """Ensure profile folder names are consistent (spaces → underscores)."""
+    return name.replace(" ", "_")
+
+
+def restore_profiles_after_update():
+    """
+    Detects when browser profiles are missing (e.g., after browser update),
+    and restores them using:
+      1. Skeleton profiles from the new browser install
+      2. Important files from data_fallback
+    """
+
+    mutable_user_data_base_path, read_only_resources_base_path = get_application_paths()
+    profiles_dir = os.path.join(mutable_user_data_base_path, "profiles")
+    fallback_profiles_dir = os.path.join(os.path.dirname(mutable_user_data_base_path), "data_fallback", "profiles")
+
+    # Ensure profiles directory exists
+    os.makedirs(profiles_dir, exist_ok=True)
+
+    # Load all profiles from profiles.db
+    db_path = os.path.join(mutable_user_data_base_path, "profiles.db")
+
+    print(f"[restore] Looking for DB at: {db_path}")
+    print(f"[restore] DB exists? {os.path.exists(db_path)}")
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT browser, name FROM profiles")  # <-- adjust column names if different
+    all_profiles = cursor.fetchall()
+    conn.close()
+
+    # Mapping for portable folder names
+    BROWSER_FOLDER_MAP = {
+        "firefox": "FirefoxPortable",
+        "chrome": "GoogleChromePortable",
+        "brave": "BravePortable"
+    }
+
+    important_files = [
+        "cookies.sqlite",
+        "places.sqlite",      # bookmarks + history
+        "logins.json",        # saved passwords
+        "key4.db",            # password encryption key
+        "prefs.js"            # settings
+        "favicons.sqlite"     # bookmark icons
+    ]
+    
+    
+
+    # Loop through all profiles saved in DB
+    for browser, profile_name in all_profiles:
+        browser_folder = BROWSER_FOLDER_MAP.get(browser.lower(), browser)
+
+        # Normalize profile folder name
+        folder_profile_name = normalize_profile_name(profile_name)
+
+        target_profile_dir = os.path.join(profiles_dir, browser_folder, folder_profile_name)
+        fallback_profile_dir = os.path.join(fallback_profiles_dir, browser_folder, folder_profile_name)
+
+        if os.path.exists(target_profile_dir):
+            continue
+
+        print(f"[Restore] Profile '{profile_name}' ({folder_profile_name}) for {browser} missing, restoring...")
+        print(f"[Debug] Fallback path: {fallback_profile_dir}, exists={os.path.exists(fallback_profile_dir)}")
+        print(f"[Debug] Target path: {target_profile_dir}")
+
+
+        # --- Step 2: Always try merging fallback important files ---
+    for fname in important_files:
+        old_file = os.path.join(fallback_profile_dir, fname)
+        new_file = os.path.join(target_profile_dir, fname)
+
+        if os.path.exists(old_file):
+            try:
+                # If skeleton already put a file here, remove it first
+                if os.path.exists(new_file):
+                    os.remove(new_file)
+
+                # Ensure folder exists before copying
+                os.makedirs(os.path.dirname(new_file), exist_ok=True)
+
+                shutil.copy2(old_file, new_file)
+                print(f"[Restore] Replaced {fname} for {profile_name}")
+            except Exception as e:
+                print(f"[Error] Could not restore {fname} for {profile_name}: {e}")
+        else:
+            print(f"[Skip] {fname} not in fallback for {profile_name}")
+
+
+
 
 
 
@@ -1160,6 +1298,16 @@ if __name__ == '__main__':
     # Disable Flask's reloader in production (packaged) environments
     debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1'
     use_reloader = debug_mode and not getattr(sys, 'frozen', False)
+    
+    print("[Startup] Backing up profiles...")
+    bulk_backup_profiles()
+    
+        # --- Run restore before the server starts ---
+    try:
+        print("[Startup] Checking profiles and restoring if needed...")
+        restore_profiles_after_update()
+    except Exception as e:
+        print(f"[Startup] Profile restore failed: {e}")
 
     # Open system default browser
     url = f"http://127.0.0.1:{port}"
