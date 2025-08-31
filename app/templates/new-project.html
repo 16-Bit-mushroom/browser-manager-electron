@@ -21,19 +21,25 @@
                 <h2 class="app-name">Browser Manager</h2>
 
                 <ul class="nav-bar-links">
-                    <li><a id="projects-link" href="/projects.html"><img class="button-icon" src="/static/projects.svg" alt="">Projects</a></li>
-                    <li><a href="/profiles.html"><img class="button-icon" src="/static/profiles.svg" alt="">Profiles</a></li>
-                    <li><a href="/browsers.html"><img class="button-icon" src="/static/browsers.svg" alt="">Browser</a></li>
+                    <li><a id="projects-link" href="/projects.html"><img class="button-icon" src="/static/projects.svg"
+                                alt="">Projects</a></li>
+                    <li><a href="/profiles.html"><img class="button-icon" src="/static/profiles.svg" alt="">Profiles</a>
+                    </li>
+                    <li><a href="/browsers.html"><img class="button-icon" src="/static/browsers.svg" alt="">Browser</a>
+                    </li>
                     <!-- <li><a href="">🕥 History</a></li> -->
-                    <li><a href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg" alt="">Recycle Bin</a></li>
+                    <li><a href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg" alt="">Recycle
+                            Bin</a></li>
                 </ul>
             </div>
 
             <div>
                 <ul class="nav-bar-links">
                     <!-- <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button> -->
-                    <li><a href="/settings.html"><img class="button-icon" src="/static/settings.svg" alt="">Settings</a></li>
-                    <li><a href="/logout"><img class="button-icon" src="/static/logout.svg" alt="">Sign Out</a></li>
+                    <li><a href="/settings.html"><img class="button-icon" src="/static/settings.svg" alt="">Settings</a>
+                    </li>
+                    <li><a href="#" id="logout-link"><img class="button-icon" src="/static/logout.svg" alt="">Sign
+                            Out</a></li>
 
                 </ul>
             </div>
@@ -155,6 +161,22 @@
                 });
             });
         </script>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const logoutLink = document.getElementById("logout-link");
+                if (logoutLink) {
+                    logoutLink.addEventListener("click", function (e) {
+                        e.preventDefault(); // stop default navigation
+
+                        if (confirm("Are you sure you want to sign out?")) {
+                            window.location.href = "/logout"; // proceed if confirmed
+                        }
+                    });
+                }
+            });
+        </script>
+
 </body>
 
 </html>

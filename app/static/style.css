@@ -11,6 +11,9 @@
 
 }
 
+html, body {
+	background-color: #F9F7F7;
+}
 
 * {
     box-sizing: border-box;

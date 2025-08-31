@@ -21,11 +21,12 @@
                 <h2 class="app-name">Browser Manager</h2>
 
                 <ul class="nav-bar-links">
-                    <li><a href="/projects.html"><img class="button-icon" src="/static/projects.svg"
-                                alt="">Projects</a></li>
+                    <li><a href="/projects.html"><img class="button-icon" src="/static/projects.svg" alt="">Projects</a>
+                    </li>
                     <li><a href="/profiles.html"><img class="button-icon" src="/static/profiles.svg" alt="">Profiles</a>
                     </li>
-                    <li><a id="browsers-link" href="/browsers.html"><img class="button-icon" src="/static/browsers.svg" alt="">Browser</a>
+                    <li><a id="browsers-link" href="/browsers.html"><img class="button-icon" src="/static/browsers.svg"
+                                alt="">Browser</a>
                     </li>
                     <!-- <li><a href="">🕥 History</a></li> -->
                     <li><a href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg" alt="">Recycle
@@ -38,7 +39,7 @@
                     <!-- <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button> -->
                     <li><a href="/settings.html"><img class="button-icon" src="/static/settings.svg" alt="">Settings</a>
                     </li>
-                    <li><a href="/logout"><img class="button-icon" src="/static/logout.svg" alt="">Sign Out</a></li>
+                    <li><a href="#" id="logout-link"><img class="button-icon" src="/static/logout.svg" alt="">Sign Out</a></li>
 
                 </ul>
             </div>
@@ -123,39 +124,44 @@
         </div>
 
         <!-- JavaScript -->
-        <script>
-            document.querySelectorAll('.download-browser-btn').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    const browser = btn.getAttribute('data-browser');
-                    btn.disabled = true;
-                    btn.innerHTML = 'Installing...';
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".download-browser-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const browser = btn.getAttribute("data-browser");
+            btn.disabled = true;
+            btn.innerHTML = "Installing... (Downloading)";
 
-                    try {
-                        const res = await fetch('/api/download_browser', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ browser })
-                        });
-                        const data = await res.json();
-
-                        if (data.error) {
-                            alert(`Error installing ${browser}: ` + data.error);
-                        } else {
-                            alert(`${browser} installed successfully.`);
-                            location.reload(); // Refresh the UI
-                        }
-                    } catch (err) {
-                        alert('Download failed.');
-                        console.error(err);
-                    } finally {
-                        btn.disabled = false;
-                        btn.innerHTML = `<img class="add-browser-icon" src="/static/add.svg" alt="Install ${browser}">`;
-                    }
+            try {
+                // Call backend to do all work
+                const res = await fetch("/api/download_browser", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ browser })
                 });
-            });
 
+                // While backend is busy extracting, fake the UI step
+                btn.innerHTML = "Installing... (Extracting)";
 
-        </script>
+                const data = await res.json();
+
+                if (data.error) {
+                    btn.innerHTML = `Error installing ${browser}`;
+                    alert(`❌ Failed to install ${browser}: ${data.error}`);
+                } else {
+                    btn.innerHTML = `${browser} Installed ✅`;
+                    setTimeout(() => location.reload(), 1500);
+                }
+            } catch (err) {
+                btn.innerHTML = `Error installing ${browser}`;
+                alert(`❌ Error installing ${browser}`);
+                console.error(err);
+            }
+        });
+    });
+});
+</script>
+
 
 
 
@@ -335,6 +341,21 @@
                             });
                     });
 
+                }
+            });
+        </script>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const logoutLink = document.getElementById("logout-link");
+                if (logoutLink) {
+                    logoutLink.addEventListener("click", function (e) {
+                        e.preventDefault(); // stop default navigation
+
+                        if (confirm("Are you sure you want to sign out?")) {
+                            window.location.href = "/logout"; // proceed if confirmed
+                        }
+                    });
                 }
             });
         </script>

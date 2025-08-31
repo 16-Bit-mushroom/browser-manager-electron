@@ -7,8 +7,13 @@
     font-family: 'Poppins', Arial, Helvetica, sans-serif;
 }
 
+/* html, body {
+    background-color: #F9F7F7 ;
+} */
+
 body {
     display: flex;
+    background-color: #F1F1F1 ;
 }
 
 
