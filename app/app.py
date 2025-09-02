@@ -754,6 +754,31 @@ def delete_profile(profile_id):
         db.rollback()
         app.logger.error(f"Error deleting profile {profile_id}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": f"Failed to delete profile: {str(e)}"}), 500
+
+@app.route('/api/profiles/bulk_delete', methods=['POST'])
+def bulk_delete_profiles():
+    ids = request.json.get('ids', [])
+    if not ids:
+        return jsonify({"status": "error", "message": "No IDs provided."}), 400
+
+    db = get_db()
+    cursor = db.cursor()
+
+    try:
+        cursor.executemany(
+            '''
+            UPDATE profiles
+            SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND is_deleted = 0
+            ''',
+            [(pid,) for pid in ids]
+        )
+        db.commit()
+        return jsonify({"status": "success", "message": f"{len(ids)} profiles moved to recycle bin."}), 200
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
     
 
 @app.route('/api/deleted_profiles', methods=['GET'])

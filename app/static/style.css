@@ -196,6 +196,23 @@ ul.nav-bar-links img {
     background-color: #2d4f79;
 }
 
+#delete-selected {
+    font-size: 14px;
+    color: white;
+    background-color: #d9534f; /* Bootstrap-like red */
+    padding: 6px 14px;
+}
+
+#delete-selected:hover {
+    background-color: #c9302c;
+    transition: background-color 0.2s ease-in-out;
+}
+
+#delete-selected:active {
+    background-color: #a92824;
+}
+
+
 .button:hover {
     background-color: var(--light-grey);
 }
