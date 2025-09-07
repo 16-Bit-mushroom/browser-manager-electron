@@ -75,18 +75,6 @@
                     <select name="project" id="project-id">
                         <option value="">No Project</option>
                     </select>
-                </form>
-
-                <div class="content-card-add-profile">
-                    <h3>Options</h3>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="save-cookies" name="save-cookies" checked>
-                        <label for="save-cookies">Save Cookies</label>
-                    </div>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="clear-session-on-exit" name="clear-session-on-exit">
-                        <label for="clear-session-on-exit">Clear Session on Exit</label>
-                    </div>
 
                     <div class="form-actions">
                         <button type="submit" form="new-profile-form" class="button primary-button">Update
@@ -95,6 +83,22 @@
                         <a id="cancel-profile" class="button secondary-button" href="/profiles.html"> Cancel</a>
                         <!-- <button type="button" id="cancel-profile" class="button secondary-button">Cancel</button> -->
                     </div>
+
+
+                </form>
+
+                <!-- <div class="content-card-add-profile">
+                    <h3>Options</h3>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="save-cookies" name="save-cookies" checked>
+                        <label for="save-cookies">Save Cookies</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="clear-session-on-exit" name="clear-session-on-exit">
+                        <label for="clear-session-on-exit">Clear Session on Exit</label>
+                    </div> -->
+
+
                 </div>
             </div>
         </div>
@@ -123,8 +127,8 @@
                     document.getElementById("browser-type").value = profile.browser;
                     document.getElementById("profile-notes").value = profile.notes || "";
                     document.getElementById("profile-proxy").value = profile.proxy || "";
-                    document.getElementById("save-cookies").checked = profile.save_cookies;
-                    document.getElementById("clear-session-on-exit").checked = profile.clear_session_on_exit;
+                    // document.getElementById("save-cookies").checked = profile.save_cookies;
+                    // document.getElementById("clear-session-on-exit").checked = profile.clear_session_on_exit;
 
                     async function loadProjectsIntoDropdown() {
                         const projectSelect = document.getElementById("project-id");

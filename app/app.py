@@ -1026,6 +1026,8 @@ def download_browser():
     # expected_checksum = match['checksum']
     zip_filename = f"{browser}.zip"
     zip_path = os.path.join(app.config['BROWSER_BINARIES_DIR'], zip_filename)
+    
+    
 
     try:
         # Step 1: Download zip
@@ -1044,10 +1046,33 @@ def download_browser():
             zip_ref.extractall(extract_dir)
 
         os.remove(zip_path)
+        
+                # ✅ Regenerate skeleton for this browser
+        from generate_skeletons import generate_skeleton
+        
+        BROWSER_MAP = {
+            "firefox": "FirefoxPortable",
+            "chrome": "chrome",
+        }
+
+        
+        try:
+            from generate_skeletons import generate_skeleton
+            skeleton_key = BROWSER_MAP.get(browser.lower(), browser)
+            generate_skeleton(skeleton_key)
+            app.logger.info(f"Skeleton regenerated for {browser}")
+        except Exception as e:
+            app.logger.error(f"Failed to regenerate skeleton for {browser}: {e}")
+        
         return jsonify({'message': f'{browser} downloaded and extracted successfully.'})
+        
+        
+    
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+    
 
 @app.route("/uninstall", methods=["POST"])
 def uninstall_browser():
@@ -1192,7 +1217,7 @@ def bulk_backup_profiles():
         "places.sqlite",      # bookmarks + history
         "logins.json",        # saved passwords
         "key4.db",            # password encryption key
-        "prefs.js"            # settings
+        "prefs.js",            # settings
         "favicons.sqlite"     # bookmark icons
     ]
 
@@ -1266,7 +1291,7 @@ def restore_profiles_after_update():
         "places.sqlite",      # bookmarks + history
         "logins.json",        # saved passwords
         "key4.db",            # password encryption key
-        "prefs.js"            # settings
+        "prefs.js",           # settings
         "favicons.sqlite"     # bookmark icons
     ]
     

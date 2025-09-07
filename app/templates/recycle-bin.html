@@ -52,15 +52,19 @@
 
             <div class="content-top-bar-actions">
                 <div class="right">
-                    <button type="button" class="button">
-                        <img class="button-icon" src="/static/restore.svg" alt="">
-                        <span class="button-text"><a>Restore selected item</a></span>
-                    </button>
 
-                    <button type="button" class="button" id="empty-recycle-bin">
+                    <a class="button" id="empty-recycle-bin">
                         <img class="button-icon" src="/static/delete_forever.svg" alt="">
-                        <span class="button-text">Empty recycle-bin</span>
-                    </button>
+                        Empty Recycle Bin
+                    </a>
+                    <a class="button" id="restore-selected" style="display:none;">
+                        <img class="button-icon" src="/static/restore.svg" alt="">
+                        Restore Selected
+                    </a>
+
+                    <a class="button danger" id="delete-selected" style="display:none;">
+                        Delete Selected
+                    </a>
 
 
                 </div>
@@ -128,18 +132,25 @@
 
                 allItems.forEach((item) => {
                     const row = tbody.insertRow();
+                    row.dataset.id = item.id;
+                    row.dataset.type = item.type.toLowerCase();
 
-                    // Checkbox
+                    // Column 1: Checkbox
                     const checkboxCell = row.insertCell();
                     const checkbox = document.createElement("input");
                     checkbox.type = "checkbox";
+                    checkbox.classList.add("row-checkbox");
                     checkbox.dataset.id = item.id;
                     checkbox.dataset.type = item.type.toLowerCase();
-
                     checkboxCell.appendChild(checkbox);
 
+                    // Column 2: Name
                     row.insertCell().textContent = item.name;
+
+                    // Column 3: Type
                     row.insertCell().textContent = item.type;
+
+                    // Column 4: Deleted At
                     row.insertCell().textContent = item.deleted_at || "Unknown";
                 });
             } catch (error) {
@@ -148,60 +159,103 @@
             }
         }
 
-        // Restore selected item(s)
-        document.querySelector(".right button").addEventListener("click", async () => {
-            const checkboxes = document.querySelectorAll("input[type='checkbox']:checked");
-
-            for (const checkbox of checkboxes) {
-                const id = checkbox.dataset.id;
-                const type = checkbox.dataset.type;
-                const endpoint = type === "profile"
-                    ? `/api/profiles/restore/${id}`
-                    : `/api/projects/restore/${id}`;
-
-                try {
-                    const response = await fetch(endpoint, { method: "POST" });
-                    const result = await response.json();
-
-                    if (!response.ok) throw new Error(result.message || "Unknown error");
-                    console.log(`${type} restored successfully.`);
-                } catch (e) {
-                    console.error(`Failed to restore ${type} ID ${id}:`, e);
-                }
-            }
-
-            loadRecycleBin(); // Refresh table
-        });
 
         document.addEventListener("DOMContentLoaded", () => {
+            const tbody = document.getElementById("projects-table-body");
+            const selectAll = document.querySelector("thead input[type='checkbox']");
+            const restoreBtn = document.getElementById("restore-selected");
+            const deleteBtn = document.getElementById("delete-selected");
             const emptyBinBtn = document.getElementById("empty-recycle-bin");
 
-            emptyBinBtn.addEventListener("click", async () => {
-                if (!confirm("Are you sure you want to permanently delete all items in the recycle bin? This cannot be undone.")) {
-                    return;
-                }
+            // ✅ Update visibility of action buttons
+            function updateActionButtons() {
+                const checkboxes = tbody.querySelectorAll(".row-checkbox:checked");
+                const anyChecked = checkboxes.length > 0;
+                restoreBtn.style.display = anyChecked ? "inline-flex" : "none";
+                deleteBtn.style.display = anyChecked ? "inline-flex" : "none";
+            }
 
-                try {
-                    const response = await fetch("/api/empty_recycle_bin", {
-                        method: "DELETE",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                    });
+            // ✅ Handle Select All
+            if (selectAll) {
+                selectAll.addEventListener("change", () => {
+                    const checkboxes = tbody.querySelectorAll(".row-checkbox");
+                    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                    updateActionButtons();
+                });
+            }
 
-                    const result = await response.json();
-
-                    if (response.ok) {
-                        alert(result.message);
-                        window.location.reload();
-                    } else {
-                        alert(`Error: ${result.message}`);
-                    }
-                } catch (error) {
-                    console.error("Error emptying recycle bin:", error);
-                    alert(`Network or system error: ${error.message}`);
+            // ✅ Row checkbox changes
+            tbody.addEventListener("change", (e) => {
+                if (e.target.classList.contains("row-checkbox")) {
+                    updateActionButtons();
                 }
             });
+
+            // ✅ Restore selected
+            restoreBtn.addEventListener("click", async () => {
+                const checkboxes = tbody.querySelectorAll(".row-checkbox:checked");
+                for (const cb of checkboxes) {
+                    const id = cb.dataset.id;
+                    const type = cb.dataset.type;
+                    const endpoint = type === "profile"
+                        ? `/api/profiles/restore/${id}`
+                        : `/api/projects/restore/${id}`;
+                    try {
+                        const res = await fetch(endpoint, { method: "POST" });
+                        const result = await res.json();
+                        if (!res.ok) throw new Error(result.message || "Error restoring");
+                    } catch (err) {
+                        console.error(`Failed to restore ${type} ${id}:`, err);
+                    }
+                }
+                loadRecycleBin();
+            });
+
+            // ✅ Delete selected permanently (bulk)
+            deleteBtn.addEventListener("click", async () => {
+                const checkboxes = tbody.querySelectorAll(".row-checkbox:checked");
+                const ids = [...checkboxes].map(cb => ({ id: cb.dataset.id, type: cb.dataset.type }));
+
+                if (!ids.length) return;
+                if (!confirm(`Permanently delete ${ids.length} items? This cannot be undone.`)) return;
+
+                try {
+                    const res = await fetch("/api/recycle_bin/bulk_delete", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ items: ids })
+                    });
+                    const result = await res.json();
+                    if (res.ok) {
+                        alert(result.message);
+                        loadRecycleBin();
+                    } else {
+                        alert("Error: " + result.message);
+                    }
+                } catch (err) {
+                    console.error("Error bulk deleting:", err);
+                }
+            });
+
+            // ✅ Empty recycle bin
+            emptyBinBtn.addEventListener("click", async () => {
+                if (!confirm("Are you sure you want to permanently delete ALL items in recycle bin?")) return;
+                try {
+                    const res = await fetch("/api/empty_recycle_bin", { method: "DELETE" });
+                    const result = await res.json();
+                    if (res.ok) {
+                        alert(result.message);
+                        loadRecycleBin();
+                    } else {
+                        alert("Error: " + result.message);
+                    }
+                } catch (err) {
+                    console.error("Error emptying recycle bin:", err);
+                }
+            });
+
+            // ✅ Initial load
+            loadRecycleBin();
         });
 
     </script>
