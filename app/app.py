@@ -50,46 +50,35 @@ def get_application_paths():
     
 
     if getattr(sys, 'frozen', False):
-        # The application is frozen (running as an executable)
-        # Mutable User Data Path: Passed from Electron's userData directory
+        # Running as packaged app (via Electron or PyInstaller)
         if args.user_data_path:
             mutable_user_data_base_path = os.path.join(args.user_data_path, 'BrowserManagerData')
         else:
-            # Fallback if --user-data-path not provided (should not happen with Electron)
-            mutable_user_data_base_path = os.path.join(os.path.dirname(sys.executable), 'data_fallback') # Just a fallback
-
-        # Read-only Resources Path: Copied by Electron-Builder to [app_root]/data/
-        # Flask executable is at [app_root]/resources/app-backend/browser_manager_flask_app.exe
-        # So, relative path from Flask exe to 'data' folder: ../../data/
-        flask_exe_dir = os.path.dirname(sys.executable)
-        app_root_dir = os.path.join(flask_exe_dir, '..', '..') # Go up from resources/app-backend to app_root
-        read_only_resources_base_path = os.path.join(app_root_dir, 'data') # Points to [app_root]/data
+            # fallback inside exe folder
+            mutable_user_data_base_path = os.path.join(os.path.dirname(sys.executable), 'data_fallback')
+        app_root_dir = os.path.abspath(os.path.join(os.path.dirname(sys.executable), "..", ".."))
+        read_only_resources_base_path = os.path.join(app_root_dir, 'data')
     else:
-        # The application is not frozen (running as a regular Python script - development mode)
+        # Development mode
         current_script_dir = os.path.abspath(os.path.dirname(__file__))
-        mutable_user_data_base_path = os.path.join(current_script_dir, 'data', 'user_data_dev') # Separate data for dev
-        read_only_resources_base_path = os.path.join(current_script_dir, 'data') # Browser binaries from dev 'data' folder
+        mutable_user_data_base_path = os.path.join(current_script_dir, 'data', 'user_data_dev')
+        read_only_resources_base_path = os.path.join(current_script_dir, 'data')
 
     return mutable_user_data_base_path, read_only_resources_base_path
 
 # Get the determined paths
 MUTABLE_USER_DATA_PATH, READ_ONLY_RESOURCES_PATH = get_application_paths()
 
-# Configure Flask app with these paths
+# Configure app storage
 app.config['DATABASE'] = os.path.join(MUTABLE_USER_DATA_PATH, 'profiles.db')
-# app.config['BROWSER_BINARIES_DIR'] = os.path.join(READ_ONLY_RESOURCES_PATH, 'browser_binaries') # This is the key change!
-app.config['BROWSER_BINARIES_DIR'] = os.path.join(
-    os.path.dirname(__file__), "data", "browser_binaries"
-)
-os.makedirs(app.config['BROWSER_BINARIES_DIR'], exist_ok=True)
-
 app.config['PROFILES_DIR'] = os.path.join(MUTABLE_USER_DATA_PATH, 'profiles')
+app.config['FALLBACK_DIR'] = os.path.join(MUTABLE_USER_DATA_PATH, 'data_fallback', 'profiles')
 
-# Ensure only the MUTABLE directories exist.
-# Electron Builder handles copying the read-only 'browser_binaries' directory.
+# Ensure directories exist
 os.makedirs(MUTABLE_USER_DATA_PATH, exist_ok=True)
 os.makedirs(app.config['PROFILES_DIR'], exist_ok=True)
-BROWSER_MANIFEST = os.path.join(os.path.dirname(__file__), 'browsers.json')
+os.makedirs(app.config['FALLBACK_DIR'], exist_ok=True)
+
 
 #
 def get_db():
@@ -441,12 +430,10 @@ def create_profile():
 
     data = request.get_json()
     name = data.get('name')
-    browser_type_raw = data.get('browser') # e.g., 'Chrome', 'Firefox', 'Brave'
+    browser_type_raw = data.get('browser')  # 'chrome', 'firefox', 'brave'
     notes = data.get('notes')
     proxy = data.get('proxy')
-    save_cookies = data.get('save_cookies') 
-    clear_session_on_exit = data.get('clear_session_on_exit') 
-    project_id = data.get('project_id') 
+    project_id = data.get('project_id')
 
     # Basic server-side validation
     if not name or not browser_type_raw:
@@ -458,24 +445,11 @@ def create_profile():
         except ValueError:
             return jsonify({"error": "Invalid project ID."}), 400
     
-    # --- MODIFIED PATH CREATION LOGIC ---
-    # Map browser type to its specific portable folder name
-    browser_folder_map = {
-        'chrome': 'GoogleChromePortable',
-        'firefox': 'FirefoxPortable',
-        'brave': 'BravePortable'
-    }
-    browser_dir_name = browser_folder_map.get(browser_type_raw)
-
-    if not browser_dir_name:
-        return jsonify({"error": f"Unsupported browser type: {browser_type_raw}"}), 400
 
     # Sanitize profile name for use in a file path
     safe_profile_name = "".join(c for c in name if c.isalnum() or c in (' ', '.', '_')).replace(' ', '_')
     
-    # Construct the full unique absolute path for this profile's data directory
-    # This path is relative to your project's 'data/profiles' directory
-    profile_folder_path = os.path.join(app.config['PROFILES_DIR'], browser_dir_name, safe_profile_name)
+    profile_folder_path = os.path.join(app.config['PROFILES_DIR'], browser_type_raw.capitalize(), safe_profile_name)
 
     app.logger.info(f"DEBUG: profile_folder_path BEFORE DB INSERT: {profile_folder_path}") # Your debug line (keep for testing)
 
@@ -490,24 +464,17 @@ def create_profile():
         
         # Insert new profile into the database with the FULL ABSOLUTE PATH
         cursor.execute('''
-            INSERT INTO profiles (name, browser, folder, notes, proxy, save_cookies, clear_session_on_exit, last_used, project_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (name, browser_type_raw, profile_folder_path, notes, proxy, save_cookies, clear_session_on_exit, datetime.datetime.now(), project_id))
+            INSERT INTO profiles (name, browser, folder, notes, proxy, last_used, project_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (name, browser_type_raw, profile_folder_path, notes, proxy, datetime.datetime.now(), project_id))
         
         db.commit()
         return jsonify({"message": "Profile created successfully!"}), 201
     except sqlite3.IntegrityError:
-        # Attempt to delete the created directory if DB insertion fails due to integrity error
-        if os.path.exists(profile_folder_path) and os.path.isdir(profile_folder_path):
-            try:
-                os.rmdir(profile_folder_path) # Only removes empty directory
-                app.logger.warning(f"Cleaned up empty profile directory after IntegrityError: {profile_folder_path}")
-            except OSError as e:
-                app.logger.error(f"Could not remove profile directory {profile_folder_path} after IntegrityError: {e}")
         return jsonify({"error": "Profile with this name already exists."}), 409
     except Exception as e:
         db.rollback()
-        app.logger.error(f"Error creating profile: {e}", exc_info=True) # Log full traceback
+        app.logger.error(f"Error creating profile: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/profiles', methods=['GET'])
@@ -534,8 +501,6 @@ def get_profiles():
             profile_dict['last_used_formatted'] = dt_object.strftime('%B %d, %Y %I:%M %p')
         else:
             profile_dict['last_used_formatted'] = 'Never'
-        profile_dict['save_cookies_display'] = 'Yes' if profile_dict['save_cookies'] else 'No'
-        profile_dict['clear_session_on_exit_display'] = 'Yes' if profile_dict['clear_session_on_exit'] else 'No'
 
         profiles_list.append(profile_dict)
 
@@ -559,8 +524,6 @@ def get_profile(profile_id):
             "folder": row["folder"],
             "notes": row["notes"],
             "proxy": row["proxy"],
-            "save_cookies": bool(row["save_cookies"]),
-            "clear_session_on_exit": bool(row["clear_session_on_exit"]),
             "project_id": row["project_id"],
             "last_used": row["last_used"]
         }
@@ -594,8 +557,6 @@ def get_profiles_by_project(project_id):
             profile_dict['last_used_formatted'] = dt_object.strftime('%B %d, %Y %I:%M %p')
         else:
             profile_dict['last_used_formatted'] = 'Never'
-        profile_dict['save_cookies_display'] = 'Yes' if profile_dict['save_cookies'] else 'No'
-        profile_dict['clear_session_on_exit_display'] = 'Yes' if profile_dict['clear_session_on_exit'] else 'No'
 
         profiles_list.append(profile_dict)
     return jsonify(profiles_list), 200
@@ -622,10 +583,11 @@ def launch_profile(profile_id):
         # IMPORTANT: Verify these paths match where you place your portable browsers.
         # Ensure the .exe names are correct for your portable versions.
         browser_exe_map = {
-            'chrome': os.path.join(app.config['BROWSER_BINARIES_DIR'], 'GoogleChromePortable', 'App', 'Chrome-bin', 'chrome.exe'),
-            'firefox': os.path.join(app.config['BROWSER_BINARIES_DIR'], 'FirefoxPortable', 'App', 'Firefox64', 'firefox.exe'),
-            'brave': os.path.join(app.config['BROWSER_BINARIES_DIR'], 'BravePortable', 'BravePortable.exe') # Adjust if Brave's portable executable is different
+            'chrome': "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+            'firefox': "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+            'brave': "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
         }
+
 
         browser_executable = browser_exe_map.get(browser_type)
 
@@ -956,148 +918,6 @@ def empty_recycle_bin():
 
 
 
-@app.route('/api/available_browsers', methods=['GET'])
-def get_available_browsers():
-    browser_binaries_path = app.config['BROWSER_BINARIES_DIR']
-    browser_map = {
-        'chrome': 'GoogleChromePortable',
-        'firefox': 'FirefoxPortable',
-        'brave': 'BravePortable'
-    }
-
-    db = get_db()
-    response = []
-
-    for browser_key, folder_name in browser_map.items():
-        folder_path = os.path.join(browser_binaries_path, folder_name)
-        if os.path.exists(folder_path):
-            count = db.execute('SELECT COUNT(*) FROM profiles WHERE browser = ?', (browser_key,)).fetchone()[0]
-            response.append({
-                'browser': browser_key,
-                'version': '123.0.0',  # (Optional: Replace this with actual version logic later)
-                'profile_count': count
-            })
-
-    return jsonify(response), 200
-
-
-
-@app.route('/api/open_browser_folder', methods=['POST'])
-def open_browser_folder():
-    folder_path = app.config['BROWSER_BINARIES_DIR']
-
-    if platform.system() == 'Windows':
-        try:
-            os.startfile(folder_path)  # ✅ This gives better OS-level handling on Windows
-            return jsonify({"success": True})
-        except Exception as e:
-            return jsonify({"success": False, "error": str(e)}), 500
-    else:
-        return jsonify({"success": False, "error": "Unsupported OS"}), 400
-
-
-def download_file(url, dest_path):
-    response = requests.get(url, stream=True)
-    response.raise_for_status()
-    with open(dest_path, 'wb') as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            f.write(chunk)
-
-def sha256_checksum(file_path):
-    sha256 = hashlib.sha256()
-    with open(file_path, 'rb') as f:
-        for chunk in iter(lambda: f.read(8192), b''):
-            sha256.update(chunk)
-    return sha256.hexdigest()
-
-@app.route('/api/download_browser', methods=['POST'])
-def download_browser():
-    browser = request.json.get('browser')
-    
-    # Load browser manifest
-    with open(BROWSER_MANIFEST) as f:
-        browsers = json.load(f)
-
-    match = next((b for b in browsers if b['browser'] == browser), None)
-    if not match:
-        return jsonify({'error': 'Browser not found in manifest'}), 404
-
-    url = match['download_url']
-    # expected_checksum = match['checksum']
-    zip_filename = f"{browser}.zip"
-    zip_path = os.path.join(app.config['BROWSER_BINARIES_DIR'], zip_filename)
-    
-    
-
-    try:
-        # Step 1: Download zip
-        download_file(url, zip_path)
-
-        # # Step 2: Verify checksum
-        # actual_checksum = sha256_checksum(zip_path)
-        # if actual_checksum != expected_checksum:
-        #     os.remove(zip_path)
-        #     return jsonify({'error': 'Checksum mismatch! File may be tampered.'}), 400
-
-        # Step 3: Extract
-        extract_dir = app.config['BROWSER_BINARIES_DIR']
-        os.makedirs(extract_dir, exist_ok=True)
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_dir)
-
-        os.remove(zip_path)
-        
-                # ✅ Regenerate skeleton for this browser
-        from generate_skeletons import generate_skeleton
-        
-        BROWSER_MAP = {
-            "firefox": "FirefoxPortable",
-            "chrome": "chrome",
-        }
-
-        
-        try:
-            from generate_skeletons import generate_skeleton
-            skeleton_key = BROWSER_MAP.get(browser.lower(), browser)
-            generate_skeleton(skeleton_key)
-            app.logger.info(f"Skeleton regenerated for {browser}")
-        except Exception as e:
-            app.logger.error(f"Failed to regenerate skeleton for {browser}: {e}")
-        
-        return jsonify({'message': f'{browser} downloaded and extracted successfully.'})
-        
-        
-    
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    
-    
-
-@app.route("/uninstall", methods=["POST"])
-def uninstall_browser():
-    data = request.get_json()
-    print("Received uninstall POST:", data)
-
-    browserFolder = data.get("browser_name")  # <-- Match JS key name
-
-    if not browserFolder:
-        return jsonify({"success": False, "message": "No browser name provided"}), 400
-
-    browser_path = os.path.join(app.config['BROWSER_BINARIES_DIR'], browserFolder)
-
-    if not os.path.exists(browser_path):
-        return jsonify({"success": False, "message": "Browser not found"}), 404
-
-    try:
-        shutil.rmtree(browser_path)
-        return jsonify({"success": True, "message": f"{browserFolder} uninstalled"})
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-    
-
-
-
 
 @app.route('/export_full_backup', methods=['GET'])
 def export_full_backup():
@@ -1205,21 +1025,34 @@ def import_db():
 def bulk_backup_profiles():
     """
     Copies only important files from user_data_dev/profiles into data_fallback/profiles
+    Supports both Firefox and Chrome/Brave structures.
     """
     mutable_user_data_base_path, _ = get_application_paths()
-    profiles_dir = os.path.join(mutable_user_data_base_path, "profiles")
-    fallback_profiles_dir = os.path.join(os.path.dirname(mutable_user_data_base_path), "data_fallback", "profiles")
-
+    profiles_dir = app.config['PROFILES_DIR']
+    fallback_profiles_dir = app.config['FALLBACK_DIR']
+    
     os.makedirs(fallback_profiles_dir, exist_ok=True)
 
-    important_files = [
-        "cookies.sqlite",
-        "places.sqlite",      # bookmarks + history
-        "logins.json",        # saved passwords
-        "key4.db",            # password encryption key
-        "prefs.js",            # settings
-        "favicons.sqlite"     # bookmark icons
+    firefox_files = [
+            "cookies.sqlite",
+            "places.sqlite",   # bookmarks + history
+            "logins.json",     # saved passwords
+            "key4.db",         # password encryption key
+            "prefs.js",        # settings
+            "favicons.sqlite"  # bookmark icons
+        ]
+
+    chrome_files = [
+        "Cookies",
+        "History",
+        "Bookmarks",
+        "Login Data",
+        "Favicons",
+        "Preferences",
+        "Web Data",
+        "Top Sites"
     ]
+
 
     # Walk through each browser → profile
     for browser in os.listdir(profiles_dir):
@@ -1231,12 +1064,23 @@ def bulk_backup_profiles():
             profile_dir = os.path.join(browser_dir, profile)
             if not os.path.isdir(profile_dir):
                 continue
-
-            fallback_profile_dir = os.path.join(fallback_profiles_dir, browser, profile)
+            
+            
+            
+                        # Handle Chrome/Brave's "Default" subfolder
+            if browser.lower() in ["chrome", "brave"]:
+                data_dir = os.path.join(profile_dir, "Default")   # always point to Default
+                fallback_profile_dir = os.path.join(fallback_profiles_dir, browser, profile, "Default")
+            else:
+                data_dir = profile_dir
+                fallback_profile_dir = os.path.join(fallback_profiles_dir, browser, profile)
+            
             os.makedirs(fallback_profile_dir, exist_ok=True)
 
-            for fname in important_files:
-                src = os.path.join(profile_dir, fname)
+            files_to_copy = chrome_files if browser.lower() in ["chrome", "brave"] else firefox_files
+
+            for fname in files_to_copy:
+                src = os.path.join(data_dir, fname)
                 dst = os.path.join(fallback_profile_dir, fname)
                 if os.path.exists(src):
                     try:
@@ -1254,21 +1098,19 @@ def normalize_profile_name(name: str) -> str:
 
 def restore_profiles_after_update():
     """
-    Detects when browser profiles are missing (e.g., after browser update),
-    and restores them using:
-      1. Skeleton profiles from the new browser install
-      2. Important files from data_fallback
+    Restores missing browser profiles by recreating the folder and
+    merging important files from data_fallback.
     """
 
     mutable_user_data_base_path, read_only_resources_base_path = get_application_paths()
-    profiles_dir = os.path.join(mutable_user_data_base_path, "profiles")
-    fallback_profiles_dir = os.path.join(os.path.dirname(mutable_user_data_base_path), "data_fallback", "profiles")
+    profiles_dir = app.config['PROFILES_DIR']
+    fallback_profiles_dir = app.config['FALLBACK_DIR']
 
     # Ensure profiles directory exists
     os.makedirs(profiles_dir, exist_ok=True)
 
     # Load all profiles from profiles.db
-    db_path = os.path.join(mutable_user_data_base_path, "profiles.db")
+    db_path = app.config['DATABASE']
 
     print(f"[restore] Looking for DB at: {db_path}")
     print(f"[restore] DB exists? {os.path.exists(db_path)}")
@@ -1279,62 +1121,66 @@ def restore_profiles_after_update():
     all_profiles = cursor.fetchall()
     conn.close()
 
-    # Mapping for portable folder names
-    BROWSER_FOLDER_MAP = {
-        "firefox": "FirefoxPortable",
-        "chrome": "GoogleChromePortable",
-        "brave": "BravePortable"
-    }
-
-    important_files = [
+    firefox_files = [
         "cookies.sqlite",
-        "places.sqlite",      # bookmarks + history
-        "logins.json",        # saved passwords
-        "key4.db",            # password encryption key
-        "prefs.js",           # settings
-        "favicons.sqlite"     # bookmark icons
+        "places.sqlite",
+        "logins.json",
+        "key4.db",
+        "prefs.js",
+        "favicons.sqlite",
+    ]
+
+    chrome_files = [
+        "Cookies",
+        "History",
+        "Bookmarks",
+        "Login Data",
+        "Favicons",
+        "Preferences",
+        "Web Data",
+        "Top Sites",
     ]
     
     
 
     # Loop through all profiles saved in DB
     for browser, profile_name in all_profiles:
-        browser_folder = BROWSER_FOLDER_MAP.get(browser.lower(), browser)
-
-        # Normalize profile folder name
         folder_profile_name = normalize_profile_name(profile_name)
+        target_profile_dir = os.path.join(profiles_dir, browser, folder_profile_name)
+        fallback_profile_dir = os.path.join(fallback_profiles_dir, browser, folder_profile_name)
 
-        target_profile_dir = os.path.join(profiles_dir, browser_folder, folder_profile_name)
-        fallback_profile_dir = os.path.join(fallback_profiles_dir, browser_folder, folder_profile_name)
 
         if os.path.exists(target_profile_dir):
             continue
 
         print(f"[Restore] Profile '{profile_name}' ({folder_profile_name}) for {browser} missing, restoring...")
-        print(f"[Debug] Fallback path: {fallback_profile_dir}, exists={os.path.exists(fallback_profile_dir)}")
-        print(f"[Debug] Target path: {target_profile_dir}")
+        os.makedirs(target_profile_dir, exist_ok=True)
 
-
-        # --- Step 2: Always try merging fallback important files ---
-    for fname in important_files:
-        old_file = os.path.join(fallback_profile_dir, fname)
-        new_file = os.path.join(target_profile_dir, fname)
-
-        if os.path.exists(old_file):
-            try:
-                # If skeleton already put a file here, remove it first
-                if os.path.exists(new_file):
-                    os.remove(new_file)
-
-                # Ensure folder exists before copying
-                os.makedirs(os.path.dirname(new_file), exist_ok=True)
-
-                shutil.copy2(old_file, new_file)
-                print(f"[Restore] Replaced {fname} for {profile_name}")
-            except Exception as e:
-                print(f"[Error] Could not restore {fname} for {profile_name}: {e}")
+        # Select files based on browser
+        if browser.lower() in ["chrome", "brave"]:
+            files_to_restore = chrome_files
+            #  Chrome/Brave profiles keep data inside "Default"
+            target_profile_dir = os.path.join(target_profile_dir, "Default")
+            fallback_profile_dir = os.path.join(fallback_profile_dir, "Default")
+            os.makedirs(target_profile_dir, exist_ok=True)
         else:
-            print(f"[Skip] {fname} not in fallback for {profile_name}")
+            files_to_restore = firefox_files
+
+            # --- Step 2: Always try merging fallback important files ---
+        for fname in files_to_restore:
+                old_file = os.path.join(fallback_profile_dir, fname)
+                new_file = os.path.join(target_profile_dir, fname)
+
+                if os.path.exists(old_file):
+                    try:
+                        if os.path.exists(new_file):
+                            os.remove(new_file)
+                        shutil.copy2(old_file, new_file)
+                        print(f"[Restore] Replaced {fname} for {profile_name}")
+                    except Exception as e:
+                        print(f"[Error] Could not restore {fname} for {profile_name}: {e}")
+                else:
+                    print(f"[Skip] {fname} not in fallback for {profile_name}")
 
 
 
@@ -1349,8 +1195,6 @@ if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1'
     use_reloader = debug_mode and not getattr(sys, 'frozen', False)
     
-    print("[Startup] Backing up profiles...")
-    bulk_backup_profiles()
     
         # --- Run restore before the server starts ---
     try:

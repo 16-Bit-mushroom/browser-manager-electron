@@ -26,8 +26,6 @@
                     <li><a id="projects-link" href="/profiles.html"><img class="button-icon" src="/static/profiles.svg"
                                 alt="">Profiles</a>
                     </li>
-                    <li><a href="/browsers.html"><img class="button-icon" src="/static/browsers.svg" alt="">Browser</a>
-                    </li>
                     <!-- <li><a href="">🕥 History</a></li> -->
                     <li><a href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg" alt="">Recycle
                             Bin</a></li>
@@ -97,8 +95,7 @@
             const profileNotesInput = document.getElementById("profile-notes");
             const profileProxyInput = document.getElementById("profile-proxy");
             const profileProjectIdSelect = document.getElementById("project-id");
-            const profileSaveCookiesCheckbox = document.getElementById("save-cookies");
-            const profileClearSessionCheckbox = document.getElementById("clear-session-on-exit");
+
             const messageDiv = document.getElementById("message");
             const cancelProfileButton = document.getElementById("cancel-profile");
 
@@ -127,11 +124,9 @@
                 event.preventDefault();
 
                 const browser = browserTypeSelect.value;
-                const name = profileNameInput.value.trim();
+                const name = profileNameInput.value.trim(); 
                 const notes = profileNotesInput.value.trim();
                 const proxy = profileProxyInput.value.trim();
-                const save_cookies = profileSaveCookiesCheckbox.checked;
-                const clear_session_on_exit = profileClearSessionCheckbox.checked;
                 const project_id = profileProjectIdSelect.value ? parseInt(profileProjectIdSelect.value) : null;
 
                 if (!name) {
@@ -154,8 +149,6 @@
                             browser,
                             notes,
                             proxy,
-                            save_cookies,
-                            clear_session_on_exit,
                             project_id
                         }),
                     });
@@ -169,8 +162,6 @@
                         profileNameInput.value = "";
                         profileNotesInput.value = "";
                         profileProxyInput.value = "";
-                        profileSaveCookiesCheckbox.checked = true; // Default to checked
-                        profileClearSessionCheckbox.checked = false; // Default to unchecked
                         browserTypeSelect.value = "chrome"; // Default to Chrome
                         profileProjectIdSelect.value = ""; // Reset dropdown
 
