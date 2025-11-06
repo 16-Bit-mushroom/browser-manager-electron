@@ -1,0 +1,15 @@
+==============================
+        BUGS to fix
+==============================
+
+        Not working
+------------------------------
+- cannot add profile to projects, no toast notifications
+- expand button, and sort button in the Projects table, and Recycle Bin
+- select all and select all actions in Projects
+
+
+
+        Fixed
+------------------------------
+- update profile not working: cannot update profile name,

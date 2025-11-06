@@ -639,8 +639,8 @@ def edit_profile(profile_id):
     name = data.get('name')
     notes = data.get('notes')
     proxy = data.get('proxy')
-    save_cookies = data.get('save_cookies')
-    clear_session_on_exit = data.get('clear_session_on_exit')
+    # save_cookies = data.get('save_cookies')
+    # clear_session_on_exit = data.get('clear_session_on_exit')
     project_id = data.get('project_id')
 
     if not name:
@@ -667,9 +667,9 @@ def edit_profile(profile_id):
 
         cursor.execute('''
             UPDATE profiles
-            SET name = ?, notes = ?, proxy = ?, save_cookies = ?, clear_session_on_exit = ?, project_id = ?
+            SET name = ?, notes = ?, proxy = ?, project_id = ?
             WHERE id = ?
-        ''', (name, notes, proxy, save_cookies, clear_session_on_exit, project_id, profile_id))
+        ''', (name, notes, proxy, project_id, profile_id))
 
         db.commit()
         return jsonify({"message": "Profile updated successfully!"}), 200

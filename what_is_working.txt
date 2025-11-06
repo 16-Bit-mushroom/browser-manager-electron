@@ -1,0 +1,7 @@
+- export and import data
+- log in system
+- create projects, profiles,
+- trash bin
+- launch profile
+- delete a profile
+- sort profiles

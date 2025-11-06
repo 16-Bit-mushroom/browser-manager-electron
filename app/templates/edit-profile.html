@@ -98,113 +98,82 @@
                     </div> -->
 
 
-                </div>
             </div>
         </div>
+    </div>
     </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const profileId = urlParams.get('id');
-            const isEditMode = !!profileId;
-
             const form = document.getElementById("new-profile-form");
-            const messageDiv = document.getElementById("message");
+            const profileId = new URLSearchParams(window.location.search).get("id");
 
-            // Fetch and preload existing data
-            if (isEditMode) {
-                try {
-                    const response = await fetch(`/api/profiles/${profileId}`);
-                    const profile = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(profile.error || "Failed to load profile.");
-                    }
-
-                    document.getElementById("profile-name").value = profile.name;
-                    document.getElementById("browser-type").value = profile.browser;
-                    document.getElementById("profile-notes").value = profile.notes || "";
-                    document.getElementById("profile-proxy").value = profile.proxy || "";
-                    // document.getElementById("save-cookies").checked = profile.save_cookies;
-                    // document.getElementById("clear-session-on-exit").checked = profile.clear_session_on_exit;
-
-                    async function loadProjectsIntoDropdown() {
-                        const projectSelect = document.getElementById("project-id");
-                        const messageDiv = document.getElementById("message");
-
-                        try {
-                            const response = await fetch('/api/projects');
-                            const projects = await response.json();
-                            projectSelect.innerHTML = '<option value="">No Project</option>'; // Default option
-
-                            projects.forEach(project => {
-                                const option = document.createElement('option');
-                                option.value = project.id;
-                                option.textContent = project.name;
-                                projectSelect.appendChild(option);
-                            });
-                        } catch (error) {
-                            console.error("Error loading projects for dropdown:", error);
-                            if (messageDiv) {
-                                messageDiv.textContent = "Error loading projects.";
-                                messageDiv.style.color = "red";
-                            }
-                        }
-                    }
-                    await loadProjectsIntoDropdown();
-
-
-
-                } catch (error) {
-                    messageDiv.textContent = `Error loading profile: ${error.message}`;
-                    messageDiv.style.color = "red";
-                }
+            if (!form || !profileId) {
+                console.error("Form or profileId missing!");
+                return;
             }
 
-            // Handle form submission
-            form.addEventListener("submit", async (event) => {
-                event.preventDefault();
+            // --- Fetch current profile data ---
+            try {
+                const response = await fetch(`/api/profiles/${profileId}`);
+                const data = await response.json();
 
-                const data = {
+                if (!response.ok) {
+                    alert("❌ Failed to load profile: " + (data.error || "Unknown error"));
+                    return;
+                }
+
+                // Fill input fields with current values
+                document.getElementById("profile-name").value = data.name || "";
+                document.getElementById("profile-notes").value = data.notes || "";
+                document.getElementById("profile-proxy").value = data.proxy || "";
+                document.getElementById("project-id").value = data.project_id || "";
+
+                console.log("Loaded profile data:", data);
+            } catch (err) {
+                console.error("Error loading profile:", err);
+                alert("⚠️ Could not load profile data.");
+            }
+
+            // --- Handle form submission (update profile) ---
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+
+                const payload = {
                     name: document.getElementById("profile-name").value.trim(),
                     notes: document.getElementById("profile-notes").value.trim(),
                     proxy: document.getElementById("profile-proxy").value.trim(),
-                    save_cookies: document.getElementById("save-cookies").checked,
-                    clear_session_on_exit: document.getElementById("clear-session-on-exit").checked,
-                    project_id: document.getElementById("project-id").value || null,
+                    project_id: document.getElementById("project-id").value || null
                 };
 
-                const endpoint = isEditMode ? `/api/edit_profile/${profileId}` : "/api/create_profile";
-                const method = isEditMode ? "PUT" : "POST";
+                console.log("Sending payload:", payload);
 
                 try {
-                    const response = await fetch(endpoint, {
-                        method,
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify(data)
+                    const response = await fetch(`/api/edit_profile/${profileId}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
                     });
 
                     const result = await response.json();
+                    console.log("Response from server:", result);
 
                     if (response.ok) {
-                        messageDiv.textContent = result.message;
-                        messageDiv.style.color = "green";
-                        setTimeout(() => window.location.href = "/profiles.html", 1500);
+                        alert("✅ Profile updated successfully!");
+                        setTimeout(() => window.location.href = "/profiles.html", 1200);
                     } else {
-                        messageDiv.textContent = result.error || "Something went wrong!";
-                        messageDiv.style.color = "red";
+                        alert(`❌ ${result.error || "Failed to update profile"}`);
                     }
+
                 } catch (err) {
+                    showToast(`⚠️ Error: ${err.message}`, "orange");
                     console.error(err);
-                    messageDiv.textContent = "Network error.";
-                    messageDiv.style.color = "red";
                 }
             });
         });
     </script>
+
+
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
