@@ -635,10 +635,10 @@ div#downloading-browser h5 {
     /* Allows sections to take equal width */
     display: flex;
     flex-direction: column;
-    padding: 30px;
+    padding-block: 30px;
     max-width: 525px;
     /* Increased padding */
-    /* gap: 15px; */
+    gap: 15px;
     /* Reduced gap for a tighter look */
     /* min-height removed as flex container will manage height */
 }
@@ -759,8 +759,8 @@ div#downloading-browser h5 {
     /* Push buttons to the bottom */
     padding-top: 20px;
     /* Space above buttons */
-    border-top: 1px solid var(--grey);
-    /* Separator line for buttons */
+    /* border-top: 1px solid var(--grey);
+    Separator line for buttons */
 }
 
 .button.primary-button {

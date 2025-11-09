@@ -1,15 +1,23 @@
 ==============================
-        BUGS to fix
+|       BUGS to fix          |
 ==============================
 
-        Not working
-------------------------------
-- cannot add profile to projects, no toast notifications
-- expand button, and sort button in the Projects table, and Recycle Bin
-- select all and select all actions in Projects
+        
+----------- Not working ------------
+
+- no super user access mode
+- different toast designs (must use the projects toast) toats for created, and deleted,
+- add show clear text password
 
 
 
-        Fixed
-------------------------------
-- update profile not working: cannot update profile name,
+
+
+----------- Fixed ------------
+
+- update profile not working: cannot update profile name, no toas notifications
+- expand button in Projects page
+- sort button in Recycle Bin
+- on other machines, when packaged, sometimes it doesnt work in port 5000
+- no option to select projects on edit profile
+- username is changed but log in credential is not changed

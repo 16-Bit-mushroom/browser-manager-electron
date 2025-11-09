@@ -104,74 +104,124 @@
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            const form = document.getElementById("new-profile-form");
-            const profileId = new URLSearchParams(window.location.search).get("id");
+    // NEW FUNCTION: Fetches and populates the projects dropdown
+    async function populateProjectsDropdown(selectedProjectId) {
+        const selectElement = document.getElementById("project-id");
+        
+        // Keep the "No Project" option, but remove any others if they exist
+        // Note: The "No Project" option is the first child (index 0)
+        while (selectElement.children.length > 1) {
+            selectElement.removeChild(selectElement.lastChild);
+        }
 
-            if (!form || !profileId) {
-                console.error("Form or profileId missing!");
+        try {
+            const response = await fetch("/api/projects");
+            const projects = await response.json();
+
+            if (!response.ok) {
+                console.error("Failed to load projects:", projects.error);
                 return;
             }
 
-            // --- Fetch current profile data ---
-            try {
-                const response = await fetch(`/api/profiles/${profileId}`);
-                const data = await response.json();
-
-                if (!response.ok) {
-                    alert("❌ Failed to load profile: " + (data.error || "Unknown error"));
-                    return;
+            projects.forEach((project) => {
+                const option = document.createElement("option");
+                option.value = project.id;
+                option.textContent = project.name;
+                
+                // Set the 'selected' attribute if this project ID matches the profile's current project_id
+                if (project.id == selectedProjectId) {
+                    option.selected = true;
                 }
+                
+                selectElement.appendChild(option);
+            });
 
-                // Fill input fields with current values
-                document.getElementById("profile-name").value = data.name || "";
-                document.getElementById("profile-notes").value = data.notes || "";
-                document.getElementById("profile-proxy").value = data.proxy || "";
-                document.getElementById("project-id").value = data.project_id || "";
+            console.log(`Loaded ${projects.length} projects into dropdown.`);
 
-                console.log("Loaded profile data:", data);
-            } catch (err) {
-                console.error("Error loading profile:", err);
-                alert("⚠️ Could not load profile data.");
+        } catch (err) {
+            console.error("Error fetching projects for dropdown:", err);
+        }
+    }
+
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        const form = document.getElementById("new-profile-form");
+        const profileId = new URLSearchParams(window.location.search).get("id");
+
+        if (!form || !profileId) {
+            console.error("Form or profileId missing!");
+            return;
+        }
+        
+        // Variable to hold the current project ID to ensure selection after loading
+        let currentProjectId = null;
+
+        // --- Fetch current profile data ---
+        try {
+            const response = await fetch(`/api/profiles/${profileId}`);
+            const data = await response.json();
+
+            if (!response.ok) {
+                alert("❌ Failed to load profile: " + (data.error || "Unknown error"));
+                return;
             }
 
-            // --- Handle form submission (update profile) ---
-            form.addEventListener("submit", async (e) => {
-                e.preventDefault();
+            // Store ID for dropdown population and selection
+            currentProjectId = data.project_id;
+            
+            // Fill input fields with current values
+            document.getElementById("profile-name").value = data.name || "";
+            document.getElementById("profile-notes").value = data.notes || "";
+            document.getElementById("profile-proxy").value = data.proxy || "";
+            
+            // --- Call the new function to load options and select the current one ---
+            await populateProjectsDropdown(currentProjectId);
+            // --------------------------------------------------------------------------
 
-                const payload = {
-                    name: document.getElementById("profile-name").value.trim(),
-                    notes: document.getElementById("profile-notes").value.trim(),
-                    proxy: document.getElementById("profile-proxy").value.trim(),
-                    project_id: document.getElementById("project-id").value || null
-                };
+            console.log("Loaded profile data:", data);
+        } catch (err) {
+            console.error("Error loading profile:", err);
+            alert("⚠️ Could not load profile data.");
+        }
 
-                console.log("Sending payload:", payload);
+        // --- Handle form submission (update profile) ---
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
 
-                try {
-                    const response = await fetch(`/api/edit_profile/${profileId}`, {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload)
-                    });
+            const payload = {
+                name: document.getElementById("profile-name").value.trim(),
+                notes: document.getElementById("profile-notes").value.trim(),
+                proxy: document.getElementById("profile-proxy").value.trim(),
+                // Get the currently selected value from the dynamically loaded select box
+                project_id: document.getElementById("project-id").value || null 
+            };
 
-                    const result = await response.json();
-                    console.log("Response from server:", result);
+            console.log("Sending payload:", payload);
 
-                    if (response.ok) {
-                        alert("✅ Profile updated successfully!");
-                        setTimeout(() => window.location.href = "/profiles.html", 1200);
-                    } else {
-                        alert(`❌ ${result.error || "Failed to update profile"}`);
-                    }
+            try {
+                const response = await fetch(`/api/edit_profile/${profileId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
 
-                } catch (err) {
-                    showToast(`⚠️ Error: ${err.message}`, "orange");
-                    console.error(err);
+                const result = await response.json();
+                console.log("Response from server:", result);
+
+                if (response.ok) {
+                    alert("✅ Profile updated successfully!");
+                    setTimeout(() => window.location.href = "/profiles.html", 1200);
+                } else {
+                    alert(`❌ ${result.error || "Failed to update profile"}`);
                 }
-            });
+
+            } catch (err) {
+                showToast(`⚠️ Error: ${err.message}`, "orange");
+                console.error(err);
+            }
         });
-    </script>
+    });
+</script>
 
 
 

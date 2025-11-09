@@ -4,4 +4,4 @@
 - trash bin
 - launch profile
 - delete a profile
-- sort profiles
+- sort profilesr

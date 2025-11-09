@@ -25,7 +25,6 @@
                     <li><a href="/profiles.html"><img class="button-icon" src="/static/profiles.svg" alt="">Profiles</a>
                     </li>
 
-                    <!-- <li><a href="">🕥 History</a></li> -->
                     <li><a id="recycle-link" href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg"
                                 alt="">Recycle
                             Bin</a></li>
@@ -34,7 +33,6 @@
 
             <div>
                 <ul class="nav-bar-links">
-                    <!-- <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button> -->
                     <li><a href="/settings.html"><img class="button-icon" src="/static/settings.svg" alt="">Settings</a>
                     </li>
                     <li><a href="#" id="logout-link"><img class="button-icon" src="/static/logout.svg" alt="">Sign
@@ -67,15 +65,9 @@
 
 
                 </div>
-                <!-- <input id="search-bar" type="text" placeholder="Search..."> -->
-
                 <div class="left">
-
-
-                    <button type="button" class="button">
-                        <img class="button-icon" src="/static/sort.svg" alt="upload-file" title="Sort Table"> </button>
-
-                </div>
+                    <button type="button" class="button" id="sort-btn">Sort by Name</button>
+                    </div>
 
 
             </div>
@@ -102,6 +94,10 @@
     </div>
 
     <script>
+        // NEW GLOBAL VARIABLES
+        let currentSortDirection = "desc"; // Initial sort is descending (most recent first)
+        let currentSortMode = "deleted_at"; // Initial sort by date
+        let currentTableData = []; // To hold the data array (profiles + projects)
 
         // recycle-bin.js (attach to your HTML)
         document.addEventListener("DOMContentLoaded", loadRecycleBin);
@@ -111,6 +107,8 @@
             const messageDiv = document.getElementById("message");
 
             try {
+                messageDiv.textContent = "Loading recycle bin...";
+
                 const [deletedProfiles, deletedProjects] = await Promise.all([
                     fetch("/api/deleted_profiles").then((res) => res.json()),
                     fetch("/api/deleted_projects").then((res) => res.json()),
@@ -121,43 +119,105 @@
                     ...deletedProjects.map((item) => ({ ...item, type: "Project" })),
                 ];
 
-                tbody.innerHTML = "";
+                // --- KEY CHANGE: Store data globally ---
+                currentTableData = allItems;
+                // ----------------------------------------
 
-                if (allItems.length === 0) {
-                    tbody.innerHTML =
-                        '<tr><td colspan="4" style="text-align:center;">Recycle bin is empty.</td></tr>';
-                    return;
-                }
+                // Render the data with current mode and direction
+                sortAndRenderTable(currentSortMode, currentSortDirection);
 
-                allItems.forEach((item) => {
-                    const row = tbody.insertRow();
-                    row.dataset.id = item.id;
-                    row.dataset.type = item.type.toLowerCase();
-
-                    // Column 1: Checkbox
-                    const checkboxCell = row.insertCell();
-                    const checkbox = document.createElement("input");
-                    checkbox.type = "checkbox";
-                    checkbox.classList.add("row-checkbox");
-                    checkbox.dataset.id = item.id;
-                    checkbox.dataset.type = item.type.toLowerCase();
-                    checkboxCell.appendChild(checkbox);
-
-                    // Column 2: Name
-                    row.insertCell().textContent = item.name;
-
-                    // Column 3: Type
-                    row.insertCell().textContent = item.type;
-
-                    // Column 4: Deleted At
-                    row.insertCell().textContent = item.deleted_at || "Unknown";
-                });
             } catch (error) {
                 console.error("Error loading recycle bin:", error);
                 messageDiv.textContent = `Failed to load recycle bin: ${error.message}`;
             }
         }
 
+        function sortAndRenderTable(column, direction) {
+            const tbody = document.getElementById("projects-table-body");
+            const messageDiv = document.getElementById("message");
+
+            // 1. Handle Sorting
+            currentTableData.sort((a, b) => {
+                let valA, valB;
+
+                if (column === "deleted_at") {
+                    // For date comparison, convert to numeric timestamp. 
+                    // Use a fallback date (1970) for "Unknown" to ensure consistent sorting.
+                    valA = new Date(a[column] || "1970-01-01").getTime();
+                    valB = new Date(b[column] || "1970-01-01").getTime();
+
+                    // Standard numeric comparison
+                    if (valA < valB) return direction === "asc" ? -1 : 1;
+                    if (valA > valB) return direction === "asc" ? 1 : -1;
+                    return 0;
+
+                } else {
+                    // Default string comparison (for name)
+                    valA = a[column].toLowerCase();
+                    valB = b[column].toLowerCase();
+
+                    if (valA < valB) return direction === "asc" ? -1 : 1;
+                    if (valA > valB) return direction === "asc" ? 1 : -1;
+                    return 0;
+                }
+            });
+
+            // 2. Handle Rendering
+            tbody.innerHTML = ""; // Clear existing rows
+
+            if (currentTableData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Recycle bin is empty.</td></tr>';
+                messageDiv.textContent = "";
+                return;
+            }
+
+            currentTableData.forEach((item) => {
+                const row = tbody.insertRow();
+                row.dataset.id = item.id;
+                row.dataset.type = item.type.toLowerCase();
+
+                // Column 1: Checkbox
+                const checkboxCell = row.insertCell();
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.classList.add("row-checkbox");
+                checkbox.dataset.id = item.id;
+                checkbox.dataset.type = item.type.toLowerCase();
+                checkboxCell.appendChild(checkbox);
+
+                // Column 2: Name
+                row.insertCell().textContent = item.name;
+
+                // Column 3: Type
+                row.insertCell().textContent = item.type;
+
+                // Column 4: Deleted At
+                row.insertCell().textContent = item.deleted_at || "Unknown";
+            });
+
+            messageDiv.textContent = "";
+        }
+
+        // NEW SORT TOGGLE FUNCTION
+        function handleSortToggle() {
+            const sortBtn = document.getElementById("sort-btn");
+
+            if (currentSortMode === "deleted_at") {
+                // Currently sorted by Time (desc). Switch to Name (asc).
+                currentSortMode = "name";
+                currentSortDirection = "asc";
+                sortBtn.textContent = "Sort by Date"; // Next click sorts by Date
+            } else {
+                // Currently sorted by Name (asc). Switch to Time (desc - most recent).
+                currentSortMode = "deleted_at";
+                currentSortDirection = "desc";
+                sortBtn.textContent = "Sort by Name"; // Next click sorts by Name
+            }
+
+            // Sort and re-render the table
+            sortAndRenderTable(currentSortMode, currentSortDirection);
+        }
+        // END NEW SORT TOGGLE FUNCTION
 
         document.addEventListener("DOMContentLoaded", () => {
             const tbody = document.getElementById("projects-table-body");
@@ -165,6 +225,14 @@
             const restoreBtn = document.getElementById("restore-selected");
             const deleteBtn = document.getElementById("delete-selected");
             const emptyBinBtn = document.getElementById("empty-recycle-bin");
+
+            const sortBtn = document.getElementById("sort-btn"); // UPDATED ID
+
+            // ATTACH NEW SORT LISTENER
+            if (sortBtn) {
+                sortBtn.addEventListener("click", handleSortToggle);
+            }
+
 
             // ✅ Update visibility of action buttons
             function updateActionButtons() {
@@ -254,6 +322,7 @@
             });
 
             // ✅ Initial load
+            // NOTE: loadRecycleBin now calls sortAndRenderTable internally
             loadRecycleBin();
         });
 

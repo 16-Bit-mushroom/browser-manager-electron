@@ -20,6 +20,8 @@ import tempfile
 import tarfile
 import bz2
 import atexit
+import socket
+from contextlib import closing   # <-- this is the missing import
 
 # --- Add Argument Parsing ---
 parser = argparse.ArgumentParser(description='Flask Backend for Browser Manager.')
@@ -255,34 +257,78 @@ def logout():
 
 @app.route('/api/current_user')
 def current_user():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not logged in'}), 401
+
     db = get_db()
-    user = db.execute('SELECT username FROM users WHERE id = 1').fetchone()
+    user = db.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
     return jsonify({'username': user['username']}), 200
 
 
+
+from werkzeug.security import check_password_hash, generate_password_hash
+from flask import request, jsonify, session
+
 @app.route('/api/update_user', methods=['POST'])
 def update_user():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not logged in.'}), 401
+
     db = get_db()
+    user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+
+    if not user:
+        return jsonify({'error': 'User not found.'}), 404
+
     data = request.json
     new_username = data.get('username')
-    new_password = data.get('password')
+    new_password = data.get('new_password')
+    current_password = data.get('current_password')
 
     if not new_username:
-        return jsonify({'error': 'Username is required'}), 400
+        return jsonify({'error': 'Username is required.'}), 400
+    if not current_password:
+        return jsonify({'error': 'Current password is required.'}), 400
 
-    # Optional: prevent duplicate usernames
-    existing = db.execute('SELECT id FROM users WHERE username = ? AND id != 1', (new_username,)).fetchone()
+    # ✅ Verify password against current user's hash
+    if not check_password_hash(user['password_hash'], current_password):
+        return jsonify({'error': 'Current password is incorrect.'}), 401
+
+    # ✅ Prevent duplicate usernames (excluding yourself)
+    existing = db.execute(
+        'SELECT id FROM users WHERE username = ? AND id != ?',
+        (new_username, user_id)
+    ).fetchone()
     if existing:
-        return jsonify({'error': 'Username already taken'}), 409
+        return jsonify({'error': 'Username already taken.'}), 409
 
+    # ✅ Update username and/or password
     if new_password:
+        if len(new_password) < 6:
+            return jsonify({'error': 'New password must be at least 6 characters long.'}), 400
         hashed_password = generate_password_hash(new_password)
-        db.execute('UPDATE users SET username = ?, password_hash = ? WHERE id = 1', (new_username, hashed_password))
+        db.execute(
+            'UPDATE users SET username = ?, password_hash = ? WHERE id = ?',
+            (new_username, hashed_password, user_id)
+        )
     else:
-        db.execute('UPDATE users SET username = ? WHERE id = 1', (new_username,))
-    
+        db.execute(
+            'UPDATE users SET username = ? WHERE id = ?',
+            (new_username, user_id)
+        )
+
     db.commit()
-    return jsonify({'message': 'User credentials updated successfully'}), 200
+    session['username'] = new_username  # ✅ keep session updated
+
+    return jsonify({'message': 'User credentials updated successfully.'}), 200
+
+
 
 
 @app.route('/login', methods=['POST'])
@@ -1187,25 +1233,38 @@ def restore_profiles_after_update():
 
 
 
-if __name__ == '__main__':
-    # Get port from environment variable, default to 5000
-    port = int(os.environ.get('FLASK_APP_PORT', 5000))
+def find_free_port(start_port=5000, max_tries=10):
+    """Finds an available port starting from `start_port`."""
+    port = start_port
+    for _ in range(max_tries):
+        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+            try:
+                s.bind(('127.0.0.1', port))
+                return port
+            except OSError:
+                port += 1
+    raise RuntimeError("No available port found.")
 
-    # Disable Flask's reloader in production (packaged) environments
+if __name__ == '__main__':
+    # --- Config ---
+    base_port = int(os.environ.get('FLASK_APP_PORT', 5000))
     debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1'
     use_reloader = debug_mode and not getattr(sys, 'frozen', False)
-    
-    
-        # --- Run restore before the server starts ---
+
+    # --- Pre-startup logic ---
     try:
         print("[Startup] Checking profiles and restoring if needed...")
         restore_profiles_after_update()
     except Exception as e:
         print(f"[Startup] Profile restore failed: {e}")
 
-    # Open system default browser
-    url = f"http://127.0.0.1:{port}"
-    print(f"Flask app starting on {url}, debug={debug_mode}, reloader={use_reloader}")
+    # --- Choose a safe port ---
+    port = find_free_port(base_port)
+    host = '127.0.0.1'
+    url = f"http://{host}:{port}"
+
+    print(f"[Startup] Starting Flask app at {url}")
     webbrowser.open(url)
 
-    app.run(host='127.0.0.1', port=port, debug=debug_mode, use_reloader=use_reloader)
+    # --- Run Flask ---
+    app.run(host=host, port=port, debug=True, use_reloader=use_reloader)

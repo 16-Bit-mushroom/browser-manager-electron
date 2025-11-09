@@ -8,7 +8,10 @@
         href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="/static/style.css" />
+    <link rel="stylesheet" href="/static/settings.css" />
     <title>Settings</title>
+
+
 </head>
 
 <body>
@@ -25,7 +28,6 @@
                     <li><a href="/profiles.html"><img class="button-icon" src="/static/profiles.svg" alt="">Profiles</a>
                     </li>
 
-                    <!-- <li><a href="">🕥 History</a></li> -->
                     <li><a href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg" alt="">Recycle
                             Bin</a></li>
                 </ul>
@@ -33,9 +35,8 @@
 
             <div>
                 <ul class="nav-bar-links">
-                    <!-- <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button> -->
-                    <li><a id="settings-link" href="/settings.html"><img class="button-icon" src="/static/settings.svg"
-                                alt="">Settings</a>
+                    <li><a id="settings-link" class="active" href="/settings.html"><img class="button-icon"
+                                src="/static/settings.svg" alt="">Settings</a>
                     </li>
                     <li><a href="#" id="logout-link"><img class="button-icon" src="/static/logout.svg" alt="">Sign
                             Out</a></li>
@@ -51,85 +52,294 @@
 
             <div class="content-card-container">
 
-                <div class="content-card-container">
-                    <form id="new-profile-form" class="content-card-add-profile">
-                        <!--Re used the form from create new profile-->
-                        <h3>User Settings</h3>
-
+                <div class="content-card">
+                    <h3 style="font-weight: 500;">User Credentials</h3>
+                    <form id="update-user-form" class="content-card-add-profile">
                         <label for="user-name">Username</label>
                         <input type="text" id="user-name" placeholder="JuanCruz123" required>
 
-                        <label for="password">Password</label>
-                        <input type="password" id="password">
+                        <label for="new-password">New Password (Leave blank to keep current)</label>
+                        <input type="password" id="new-password" placeholder="Min 6 characters">
+
+                        <label for="current-password">Current Password (Required to save changes)</label>
+                        <input type="password" id="current-password" required>
 
                         <div class="form-actions">
-
                             <button class="button primary-button" type="submit">Save Changes</button>
                             <button class="button secondary-button" type="reset">Cancel</button>
                         </div>
                     </form>
-
-
                 </div>
 
+                <div class="content-card">
+                    <h3 style="font-weight: 500;">Data Management</h3>
+                    <p style="font-weight: 300;">Backup and restore projets and profiles data.</p>
+                    <div class="data-management-actions">
+                        <button type="button" class="button button secondary-button" id="export-backup-button" title="Export Full Backup">
+                            <img class="button-icon" src="/static/file_save.svg" alt="Export Backup">
+                        </button>
 
+                        <label class="button secondary-button" for="import-db-input" title="Import Database (.db)">
+                            <img class="button-icon" src="/static/upload_file.svg" alt="Import DB">
+                        </label>
+                        <input id="import-db-input" type="file" accept=".db" style="display: none;" />
+                    </div>
+
+                    <!-- <h3 style="margin-top: 40px; border-bottom: none;">App Configuration</h3>
+                    <p style="margin-bottom: 15px;">Other application settings coming soon...</p>
+                    </div> -->
 
             </div>
         </div>
+    </div>
 
-        <script>
 
-            window.addEventListener('DOMContentLoaded', async () => {
+    <div id="custom-modal-overlay" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <h4 id="custom-modal-title"></h4>
+            <p id="custom-modal-message"></p>
+            <div class="custom-modal-actions">
+                <button id="modal-cancel-button" class="button secondary-button">Cancel</button>
+                <button id="modal-confirm-button" class="button danger-button">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container">
+        </div>
+
+
+    <script>
+        // ===============================================
+        // UTILITY FUNCTIONS (TOASTS AND MODALS)
+        // ===============================================
+
+        /** Displays a temporary notification toast. */
+        function showToast(message, type = 'default') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.classList.add('toast', type);
+            toast.innerHTML = message;
+            container.appendChild(toast);
+
+            // Force reflow for transition
+            void toast.offsetWidth;
+
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.addEventListener('transitionend', () => toast.remove());
+            }, 5000);
+        }
+
+        let modalCallback = null;
+
+        /** Displays a custom confirmation modal, replacing window.confirm. */
+        function showCustomConfirm(title, message, confirmButtonText = 'Confirm', cancelButtonText = 'Cancel', callback, isDanger = true) {
+            const overlay = document.getElementById('custom-modal-overlay');
+            const modalTitle = document.getElementById('custom-modal-title');
+            const modalMessage = document.getElementById('custom-modal-message');
+            const confirmButton = document.getElementById('modal-confirm-button');
+            const cancelButton = document.getElementById('modal-cancel-button');
+
+            modalTitle.textContent = title;
+            modalMessage.innerHTML = message; // Use innerHTML to allow for strong tags/br
+            confirmButton.textContent = confirmButtonText;
+            cancelButton.textContent = cancelButtonText;
+
+            confirmButton.className = isDanger ? 'button danger-button' : 'button primary-button';
+
+            modalCallback = callback;
+            overlay.classList.add('show');
+
+            confirmButton.onclick = () => {
+                overlay.classList.remove('show');
+                if (modalCallback) modalCallback(true);
+            };
+
+            cancelButton.onclick = () => {
+                overlay.classList.remove('show');
+                if (modalCallback) modalCallback(false);
+            };
+
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('show');
+                    if (modalCallback) modalCallback(false);
+                }
+            };
+        }
+
+
+        // ===============================================
+        // INITIAL DATA LOAD
+        // ===============================================
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Load username on page load
+            try {
                 const res = await fetch('/api/current_user');
                 const data = await res.json();
                 document.getElementById('user-name').value = data.username || '';
-            });
+            } catch (error) {
+                console.error("Failed to load user data:", error);
+                showToast("Failed to load user data.", 'error');
+            }
+        });
 
-            document.getElementById('new-profile-form').addEventListener('submit', async function (event) {
-                event.preventDefault();
 
-                const username = document.getElementById('user-name').value.trim();
-                const password = document.getElementById('password').value.trim();
+        // ===============================================
+        // USER CREDENTIALS UPDATE
+        // ===============================================
+        document.getElementById('update-user-form').addEventListener('submit', async function (event) {
+            event.preventDefault();
 
-                try {
-                    const res = await fetch('/api/update_user', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ username, password })
-                    });
+            const username = document.getElementById('user-name').value.trim();
+            const new_password = document.getElementById('new-password').value.trim();
+            const current_password = document.getElementById('current-password').value.trim();
 
-                    const result = await res.json();
+            // Basic validation
+            if (!username) {
+                showToast("Username cannot be empty.", 'error');
+                return;
+            }
+            if (!current_password) {
+                showToast("You must enter your current password to save changes.", 'error');
+                return;
+            }
+            if (new_password && new_password.length < 6) {
+                showToast("New password must be at least 6 characters long.", 'error');
+                return;
+            }
 
-                    if (res.ok) {
-                        alert(result.message);
-                        document.getElementById('password').value = '';  // Clear password field
-                    } else {
-                        alert(result.error || 'Update failed');
-                    }
-                } catch (err) {
-                    console.error('Error updating user:', err);
-                    alert('An error occurred while updating credentials.');
+            try {
+                // The API must be updated to expect new_password and current_password
+                const res = await fetch('/api/update_user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username,
+                        new_password,
+                        current_password
+                    })
+                });
+
+                const result = await res.json();
+
+                if (res.ok) {
+                    showToast(result.message || 'Credentials updated successfully.', 'success');
+                    // Clear password fields on success
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('current-password').value = '';
+                } else {
+                    showToast(result.error || 'Update failed.', 'error');
                 }
-            });
-        </script>
+            } catch (err) {
+                console.error('Error updating user:', err);
+                showToast('An error occurred while updating credentials.', 'error');
+            }
+        });
 
-        <script>
-            document.addEventListener("DOMContentLoaded", function () {
-                const logoutLink = document.getElementById("logout-link");
-                if (logoutLink) {
-                    logoutLink.addEventListener("click", function (e) {
-                        e.preventDefault(); // stop default navigation
 
-                        if (confirm("Are you sure you want to sign out?")) {
-                            window.location.href = "/logout"; // proceed if confirmed
+        // ===============================================
+        // DATA MANAGEMENT HANDLERS (EXPORT/IMPORT)
+        // ===============================================
+
+        // Export Backup
+        document.getElementById("export-backup-button").addEventListener("click", () => {
+            window.location.href = "/export_full_backup"; // Triggers file download
+            showToast("Export initiated, your download should start shortly.", 'default');
+        });
+
+        // Import DB
+        document.getElementById("import-db-input").addEventListener("change", async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                // 1. Check if current database is empty
+                const checkRes = await fetch('/api/check_db_empty');
+                const {
+                    empty
+                } = await checkRes.json();
+
+                let message = `Are you sure you want to import data from: <strong>${file.name}</strong>?`;
+                if (!empty) {
+                    message = `Your current data will be **replaced** by the imported database. <br> Please back up first if you haven’t already. <br><br> Continue with import?`;
+                }
+
+                // Use Custom Modal for confirmation
+                showCustomConfirm(
+                    "Confirm Data Import",
+                    message,
+                    "Import",
+                    "Cancel",
+                    async (confirmed) => {
+                        if (!confirmed) return;
+
+                        // 2. Proceed with import
+                        const formData = new FormData();
+                        formData.append("db_file", file);
+
+                        try {
+                            const res = await fetch("/import_db", {
+                                method: "POST",
+                                body: formData,
+                            });
+
+                            const result = await res.json();
+
+                            if (res.ok) {
+                                showToast(result.message || "Import successful. Reloading app...", 'success');
+                                // Delay reload slightly to allow the toast to show
+                                setTimeout(() => location.reload(), 1500); 
+                            } else {
+                                showToast(result.message || "Import failed. Check file integrity.", 'error');
+                            }
+                        } catch (err) {
+                            console.error("Import error:", err);
+                            showToast("An error occurred during import.", 'error');
                         }
-                    });
-                }
-            });
-        </script>
+                    },
+                    true // Use danger style for confirmation because data will be overwritten
+                );
 
+            } catch (err) {
+                console.error("Error checking DB emptiness:", err);
+                showToast("Could not check current database status.", 'error');
+            }
+        });
+
+
+        // ===============================================
+        // GLOBAL LISTENERS (LOGOUT)
+        // ===============================================
+        document.addEventListener("DOMContentLoaded", function () {
+            const logoutLink = document.getElementById("logout-link");
+            if (logoutLink) {
+                logoutLink.addEventListener("click", function (e) {
+                    e.preventDefault();
+
+                    showCustomConfirm(
+                        "Sign Out",
+                        "Are you sure you want to sign out?",
+                        "Sign Out",
+                        "Cancel",
+                        (confirmed) => {
+                            if (confirmed) {
+                                window.location.href = "/logout";
+                            }
+                        },
+                        false // Not a danger action
+                    );
+                });
+            }
+        });
+    </script>
 
 
 </body>

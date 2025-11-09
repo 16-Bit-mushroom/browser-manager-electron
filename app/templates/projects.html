@@ -26,7 +26,6 @@
                     <li><a href="/profiles.html"><img class="button-icon" src="/static/profiles.svg" alt="">Profiles</a>
                     </li>
 
-                    <!-- <li><a href="">🕥 History</a></li> -->
                     <li><a href=" /recycle-bin.html"><img class="button-icon" src="/static/bin.svg" alt="">Recycle
                             Bin</a></li>
                 </ul>
@@ -34,7 +33,6 @@
 
             <div>
                 <ul class="nav-bar-links">
-                    <!-- <button style="padding: 5px; cursor: pointer;;">☀️ Light Mode</button> -->
                     <li><a href="/settings.html"><img class="button-icon" src="/static/settings.svg" alt="">Settings</a>
                     </li>
                     <li><a href="#" id="logout-link"><img class="button-icon" src="/static/logout.svg" alt="">Sign
@@ -55,28 +53,16 @@
                     <a class="button" id="add-project" href="/new-project.html">Add Project</a>
                     </button>
 
-                    <button type="button" class="button" id="export-backup-button" title="Export Full Backup">
-                        <img class="button-icon" src="/static/file_save.svg" alt="Export Backup">
-                    </button>
-
-
-                    <!-- Import button -->
-                    <label class="button" for="import-db-input">
-                        <img class="button-icon" src="/static/upload_file.svg" alt="Import DB" title="Import Profile">
-                    </label>
-                    <input id="import-db-input" type="file" accept=".db" style="display: none;" />
-
-
                 </div>
                 <input id="search-bar" type="text" placeholder="Search profiles, projects, or notes...">
 
                 <div class="left">
-                    <button type="button" class="button">
+                    <button type="button" class="button" id="expand-all-button">
                         <img class="button-icon" src="/static/expand_all.svg" alt="upload-file" title="Expand All">
                     </button>
 
-                    <button type="button" class="button">
-                        <img class="button-icon" src="/static/sort.svg" alt="upload-file" title="Sort Table"> </button>
+                    <!-- <button type="button" class="button">
+                        <img class="button-icon" src="/static/sort.svg" alt="upload-file" title="Sort Table"> </button> -->
 
                 </div>
 
@@ -89,7 +75,6 @@
                 <table class="content-table">
                     <thead>
                         <tr>
-                            <th id="far-left-th"><input type="checkbox" name="select" id="" title="Select All"></th>
                             <th>Project Name</th>
                             <th>Profiles</th>
                             <th>Last Used</th>
@@ -110,6 +95,7 @@
         const messageDiv = document.getElementById("message");
         // Store which project rows are currently expanded to prevent re-fetching unnecessarily
         const expandedProjects = new Set();
+        let areAllExpanded = false;
 
         async function loadProjects() {
             try {
@@ -126,7 +112,8 @@
 
                 if (projects.length === 0) {
                     if (projectsTableBody) {
-                        projectsTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center;">No Projects found. Create a new one!</td></tr>`;
+                        // Colspan adjusted from 5 to 4
+                        projectsTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center;">No Projects found. Create a new one!</td></tr>`;
                     }
                     return;
                 } else {
@@ -141,33 +128,22 @@
                     projectRow.dataset.notes = project.notes || "";
 
 
-                    // Checkbox column
-                    const checkboxCell = projectRow.insertCell(0);
-                    const checkbox = document.createElement("input");
-                    checkbox.type = "checkbox";
-                    checkbox.name = "select-project";
-                    checkbox.dataset.projectId = project.id;
+                    // Removed Checkbox column (index 0)
 
-                    // ✅ Prevent row click when checkbox is clicked
-                    checkbox.addEventListener("click", (e) => {
-                        e.stopPropagation();
-                    });
-                    checkboxCell.appendChild(checkbox);
-
-                    const nameCell = projectRow.insertCell(1);
+                    const nameCell = projectRow.insertCell(0); // Index adjusted from 1 to 0
                     nameCell.innerHTML = `<span class="expand-icon">▶</span> ${project.name}`; // Add expand icon
 
-                    projectRow.insertCell(2).textContent = project.profile_count; // Display profile count (was <th>Profile Name</th> but now holds count)
+                    projectRow.insertCell(1).textContent = project.profile_count; // Index adjusted from 2 to 1
 
                     let lastUsedDisplay = "Never";
                     if (project.last_used_formatted) {
                         // Use the formatted value from backend
                         lastUsedDisplay = project.last_used_formatted;
                     }
-                    projectRow.insertCell(3).textContent = lastUsedDisplay;
+                    projectRow.insertCell(2).textContent = lastUsedDisplay; // Index adjusted from 3 to 2
 
                     // Actions cell
-                    const actionsCell = projectRow.insertCell(4);
+                    const actionsCell = projectRow.insertCell(3); // Index adjusted from 4 to 3
 
                     // --- Delete Button ---
                     const deleteButton = document.createElement("button");
@@ -254,7 +230,7 @@
                     profileSubRow.dataset.projectId = project.id; // Link to project
 
                     const subCell = profileSubRow.insertCell(0);
-                    subCell.colSpan = 5; // Span across all columns of the main table
+                    subCell.colSpan = 4; // Colspan adjusted from 5 to 4
                     subCell.innerHTML = `<div class="profile-list-container" id="profiles-for-project-${project.id}"></div>`;
                     // The profile list will be loaded into this container
 
@@ -416,10 +392,64 @@
             }
         }
 
+        function toggleAllProjects() {
+            const projectRows = document.querySelectorAll("#projects-table-body tr.project-row");
+
+            if (areAllExpanded) {
+                // --- Collapse All Logic ---
+                projectRows.forEach((row) => {
+                    const projectId = row.dataset.projectId;
+                    const profileSubRow = row.nextElementSibling;
+
+                    // Only collapse if the project is currently expanded
+                    if (expandedProjects.has(projectId)) {
+                        // Call the existing toggleProfiles function to collapse it
+                        // Note: The toggle function handles removing the 'show' class and changing the icon
+                        toggleProfiles(projectId, row, profileSubRow);
+                    }
+                });
+            } else {
+                // --- Expand All Logic ---
+                projectRows.forEach((row) => {
+                    const projectId = row.dataset.projectId;
+                    const profileSubRow = row.nextElementSibling;
+
+                    // Only expand if the project is currently collapsed
+                    if (!expandedProjects.has(projectId)) {
+                        // Call the existing toggleProfiles function to expand it
+                        toggleProfiles(projectId, row, profileSubRow);
+                    }
+                });
+            }
+
+            // Invert the state for the next click
+            areAllExpanded = !areAllExpanded;
+
+            // Optional: Update the button's title or image to reflect the new action (e.g., "Collapse All")
+            const buttonImage = document.querySelector("#expand-all-button .button-icon");
+            if (buttonImage) {
+                if (areAllExpanded) {
+                    buttonImage.title = "Collapse All";
+                    // You might want to change the image source here, e.g., to a collapse icon
+                    // buttonImage.src = "/static/collapse_all.svg"; 
+                } else {
+                    buttonImage.title = "Expand All";
+                    // buttonImage.src = "/static/expand_all.svg";
+                }
+            }
+        }
+
+
         // Load projects when the page is fully loaded
         document.addEventListener("DOMContentLoaded", async () => {
             await preloadAllProfiles();
             loadProjects();
+
+            // Attach click handler for the new "Expand All" button
+            const expandAllButton = document.getElementById("expand-all-button");
+            if (expandAllButton) {
+                expandAllButton.addEventListener("click", toggleAllProjects);
+            }
         });
 
 
@@ -429,7 +459,7 @@
 
             rows.forEach((row) => {
                 const projectId = row.dataset.projectId;
-                const projectName = row.cells[1].textContent.trim().toLowerCase();
+                const projectName = row.cells[0].textContent.trim().toLowerCase(); // Index adjusted to 0
                 const notes = row.dataset.notes ? row.dataset.notes.toLowerCase() : "";
                 const subRow = row.nextElementSibling;
 
@@ -500,7 +530,11 @@
                 console.error("Import error:", err);
                 alert("An error occurred during import.");
             }
-        });
+        }
+
+
+
+        );
 
 
     </script>
